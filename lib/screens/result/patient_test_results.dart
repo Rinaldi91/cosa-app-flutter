@@ -85,7 +85,7 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.patient.name} - Blood Sugar Test'),
+        title: Text('${widget.patient.name} - Glucose Test Results'),
         titleTextStyle: const TextStyle(
             color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
         centerTitle: true,
@@ -137,7 +137,7 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Test Results',
+                'Glucose Test Results',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -218,6 +218,13 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                           // Safely get unit value with fallback
                           String unit = result['unit'] ?? 'mg/dL';
 
+                          // Safely get device name with fallback
+                          String deviceName =
+                              result['device_name'] ?? 'Unknown Device';
+
+                          // Safely get metode with fallback
+                          String metode = result['metode'] ?? 'Not specified';
+
                           return Card(
                             margin: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 5),
@@ -274,6 +281,36 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                                           color: statusColor,
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text('Device Name:'),
+                                      Text(
+                                        deviceName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text('Metode:'),
+                                      Text(
+                                        metode,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 14,
                                         ),
                                       ),
                                     ],
