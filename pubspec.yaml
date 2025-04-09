@@ -29,10 +29,11 @@ dev_dependencies:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/icons/maskot_cosaapp.png"
+  image_path: "assets/icons/maskot.png"
 
 flutter:
   assets:
    - assets/images/cosaapp.png
+   - assets/images/splash.png
    - assets/images/profile.png
   uses-material-design: true

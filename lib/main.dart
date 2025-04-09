@@ -180,7 +180,7 @@ class _SplashScreenState extends State<SplashScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Image.asset(
-                'assets/images/cosaapp.png',
+                'assets/images/splash.png',
                 width: 300,
                 height: 300,
               ),

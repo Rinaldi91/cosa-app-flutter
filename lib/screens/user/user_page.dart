@@ -42,20 +42,68 @@ class _UserPageState extends State<UserPage> {
   }
 
   Future<void> _showLogoutDialog(BuildContext context) async {
+    final theme = Theme.of(context);
+
     return showDialog(
       context: context,
+      barrierDismissible: false, // Dialog tidak hilang saat klik area bebas
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Notification'),
-          content: const Text('Are you sure you want to logout?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
+                16), // Tambahkan border radius untuk desain modern
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.notifications,
+                  color: theme.colorScheme.primary, size: 24),
+              const SizedBox(width: 8),
+              Text(
+                'Notification',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Are you sure you want to logout?',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
             ),
-            TextButton(
-              onPressed: () => _handleLogout(context),
-              child: const Text('Logout'),
+          ),
+          actions: [
+            OutlinedButton.icon(
+              onPressed: () => Navigator.pop(
+                  context), // Tutup dialog saat tombol Cancel ditekan
+              icon: Icon(Icons.close, size: 16, color: theme.colorScheme.error),
+              label: Text(
+                'Cancel',
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(
+                    color: theme.colorScheme.error), // Tambahkan border merah
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              onPressed: () => _handleLogout(context), // Panggil fungsi logout
+              icon: Icon(Icons.logout,
+                  size: 16, color: Colors.white), // Ikon putih
+              label: Text(
+                'Logout',
+                style: TextStyle(color: Colors.white), // Teks putih
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red, // Background merah
+                foregroundColor: Colors.white, // Warna teks dan ikon putih
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
             ),
           ],
         );

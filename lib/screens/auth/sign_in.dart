@@ -89,7 +89,7 @@ class __FormContentState extends State<_FormContent> {
   void initState() {
     super.initState();
     _initializeDio();
-    _loadRememberedEmail();
+    _loadRememberedCredentials();
   }
 
   void _initializeDio() {
@@ -97,17 +97,17 @@ class __FormContentState extends State<_FormContent> {
     _dio = ApiConfig.getDioClient();
   }
 
-  Future<void> _loadRememberedEmail() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      setState(() {
-        _emailController.text = prefs.getString('remembered_email') ?? '';
-        _rememberMe = prefs.getBool('remember_me') ?? false;
-      });
-    } catch (e) {
-      _showError('Failed to load saved credentials');
-    }
-  }
+  // Future<void> _loadRememberedEmail() async {
+  //   try {
+  //     final prefs = await SharedPreferences.getInstance();
+  //     setState(() {
+  //       _emailController.text = prefs.getString('remembered_email') ?? '';
+  //       _rememberMe = prefs.getBool('remember_me') ?? false;
+  //     });
+  //   } catch (e) {
+  //     _showError('Failed to load saved credentials');
+  //   }
+  // }
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) {
@@ -173,6 +173,19 @@ class __FormContentState extends State<_FormContent> {
     }
   }
 
+  Future<void> _loadRememberedCredentials() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      setState(() {
+        _emailController.text = prefs.getString('remembered_email') ?? '';
+        _passwordController.text = prefs.getString('remembered_password') ?? '';
+        _rememberMe = prefs.getBool('remember_me') ?? false;
+      });
+    } catch (e) {
+      _showError('Failed to load saved credentials');
+    }
+  }
+
   Future<void> _handleSuccessfulLogin(Map<String, dynamic> data) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -183,9 +196,12 @@ class __FormContentState extends State<_FormContent> {
 
       if (_rememberMe) {
         await prefs.setString('remembered_email', _emailController.text.trim());
+        await prefs.setString(
+            'remembered_password', _passwordController.text.trim());
         await prefs.setBool('remember_me', true);
       } else {
         await prefs.remove('remembered_email');
+        await prefs.remove('remembered_password');
         await prefs.setBool('remember_me', false);
       }
 

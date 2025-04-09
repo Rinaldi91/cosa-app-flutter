@@ -50,6 +50,8 @@ class _DashboardPageState extends State<DashboardPage> {
   final TextEditingController emailController = TextEditingController();
   int step = 0;
 
+  get deviceMacAddress => null;
+
   @override
   void initState() {
     super.initState();
@@ -175,7 +177,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   void _startConnectionMonitoring() {
     _connectionCheckTimer = Timer.periodic(
-      const Duration(seconds: 2),
+      const Duration(seconds: 1),
       (timer) => BluetoothUtils.checkDeviceConnection(
         _connectedDevice,
         onDisconnected: () {
@@ -236,6 +238,52 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
+  Future<void> saveConnectionLog({
+    required BuildContext context, // Tambahkan context untuk SnackBar
+    required String deviceId,
+    required bool isConnected,
+    required String details,
+    String deviceType = 'CounterPlusElite',
+  }) async {
+    try {
+      // Ambil token dari SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token');
+
+      if (token == null || token.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Please login again.")),
+        );
+        return;
+      }
+
+      // Prepare data for the connection log
+      Map<String, dynamic> logData = {
+        'deviceId': deviceId,
+        'status': isConnected ? 'Connected' : 'Disconnected',
+        'details': details,
+        'deviceType': deviceType,
+      };
+
+      const String connectionLogEndpoint = ApiConfig.connectionStatus;
+
+      // Kirim data dengan token yang valid
+      final response = await ApiConfig.postData(
+        endpoint: connectionLogEndpoint,
+        data: logData,
+        token: token, // Pastikan token dikirim
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('Connection log saved successfully: ${response.data}');
+      } else {
+        print('Failed to save connection log: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error saving connection log: $e');
+    }
+  }
+
   Future<void> _connectToDevice(
       BluetoothDevice device, bool isContourDevice) async {
     try {
@@ -248,7 +296,17 @@ class _DashboardPageState extends State<DashboardPage> {
 
       if (!mounted) return;
 
-      _connectionStateSubscription = device.connectionState.listen((state) {
+      // Log the successful connection
+      saveConnectionLog(
+        context: context, // Tambahkan parameter context
+        deviceId: device.id.toString(),
+        isConnected: true,
+        details: 'Device connected successfully. Device name: ${device.name}',
+        deviceType: isContourDevice ? device.name : 'CounterPlusElite',
+      );
+
+      _connectionStateSubscription =
+          device.connectionState.listen((state) async {
         if (state == BluetoothConnectionState.disconnected && mounted) {
           setState(() {
             _connectedDevice = null;
@@ -256,6 +314,16 @@ class _DashboardPageState extends State<DashboardPage> {
             _glucoseResult = "No Data";
             _latestReading = null;
           });
+
+          // Log the disconnection
+          saveConnectionLog(
+            context: context, // Tambahkan parameter context
+            deviceId: device.id.toString(),
+            isConnected: false,
+            details: 'Device disconnected. REMOTE_USER_TERMINATED_CONNECTION',
+            deviceType: isContourDevice ? device.name : 'CounterPlusElite',
+          );
+
           BluetoothUtils.showDisconnectionSnackBar(context);
         }
       });
@@ -293,8 +361,24 @@ class _DashboardPageState extends State<DashboardPage> {
       BluetoothUtils.showConnectionSuccessSnackBar(context, device.name);
     } catch (e) {
       if (!mounted) return;
+
+      // Log connection error
+      saveConnectionLog(
+        context: context, // Tambahkan parameter context
+        deviceId: device.id.toString(),
+        isConnected: false,
+        details: 'Connection error: ${e.toString()}',
+        deviceType: isContourDevice ? 'CounterPlus' : 'Unknown',
+      );
+
       BluetoothUtils.showConnectionErrorSnackBar(context, e.toString());
     }
+  }
+
+// Helper method to get the authentication token
+  Future<String?> _getAuthToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('auth_token');
   }
 
   Future<void> _scanBarcode() async {
@@ -861,3 +945,65 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 }
+
+
+// Future<void> _connectToDevice(
+  //     BluetoothDevice device, bool isContourDevice) async {
+  //   try {
+  //     if (_connectedDevice != null) {
+  //       await _connectedDevice!.disconnect();
+  //     }
+
+  //     await _connectionStateSubscription?.cancel();
+  //     await device.connect();
+
+  //     if (!mounted) return;
+
+  //     _connectionStateSubscription = device.connectionState.listen((state) {
+  //       if (state == BluetoothConnectionState.disconnected && mounted) {
+  //         setState(() {
+  //           _connectedDevice = null;
+  //           _isContourDevice = false;
+  //           _glucoseResult = "No Data";
+  //           _latestReading = null;
+  //         });
+  //         BluetoothUtils.showDisconnectionSnackBar(context);
+  //       }
+  //     });
+
+  //     setState(() {
+  //       _connectedDevice = device;
+  //       _isContourDevice = isContourDevice;
+  //     });
+
+  //     if (isContourDevice) {
+  //       try {
+  //         await BluetoothUtils.setupGlucoseNotification(
+  //           device,
+  //           (GlucoseReading reading) {
+  //             debugPrint('Received new reading: ${reading.toString()}');
+  //             if (mounted) {
+  //               setState(() {
+  //                 _latestReading = reading;
+  //                 _glucoseResult = "${reading.glucoseValue} ${reading.unit}";
+  //                 debugPrint('Updated UI with glucose result: $_glucoseResult');
+  //               });
+  //             }
+  //           },
+  //         );
+  //       } catch (e) {
+  //         debugPrint('Error in glucose notification setup: $e');
+  //         if (mounted) {
+  //           setState(() {
+  //             _glucoseResult = "Error: Cannot read glucose data";
+  //           });
+  //         }
+  //       }
+  //     }
+
+  //     BluetoothUtils.showConnectionSuccessSnackBar(context, device.name);
+  //   } catch (e) {
+  //     if (!mounted) return;
+  //     BluetoothUtils.showConnectionErrorSnackBar(context, e.toString());
+  //   }
+  // }

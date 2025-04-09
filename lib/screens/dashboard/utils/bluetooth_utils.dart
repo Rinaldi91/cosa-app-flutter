@@ -427,61 +427,266 @@ class _DeviceSelectionDialogState extends State<DeviceSelectionDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text("Select Bluetooth Device"),
-      content: SizedBox(
-        height: 200,
-        width: 300,
-        child: isScanning
-            ? const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text("Scanning for devices..."),
-                  ],
-                ),
-              )
-            : scanResults.isEmpty
-                ? const Center(
-                    child: Text("No devices found"),
-                  )
-                : ListView.builder(
-                    itemCount: scanResults.length,
-                    itemBuilder: (context, index) {
-                      final device = scanResults[index].device;
-                      final bool isContourDevice =
-                          device.name.toLowerCase().contains('contour');
+    final theme = Theme.of(context);
+    final size = MediaQuery.of(context).size;
+    // Buat dialog lebih responsif dengan lebar maksimum
+    final dialogWidth =
+        min(size.width * 0.85, 600.0); // Lebar maksimum untuk tablet
 
-                      return ListTile(
-                        title: Text(
-                          device.name,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(device.id.toString()),
-                        trailing: isContourDevice
-                            ? const Icon(Icons.check_circle,
-                                color: Colors.green)
-                            : null,
-                        onTap: () {
-                          Navigator.of(context).pop();
-                          widget.onDeviceSelected(device, isContourDevice);
-                        },
-                      );
-                    },
-                  ),
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+      elevation: 8,
+      backgroundColor: theme.colorScheme.surface,
+      child: SingleChildScrollView(
+        // Gunakan SingleChildScrollView untuk menghindari overflow
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Judul yang responsif
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.bluetooth_searching,
+                    color: theme.colorScheme.primary,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      "Select Bluetooth Device",
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onSurface,
+                        fontSize: 18,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Area konten dengan tinggi dan lebar responsif
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth:
+                      dialogWidth - 40, // Sesuaikan lebar konten dengan dialog
+                ),
+                child: Container(
+                  height: min(
+                      size.height * 0.4, 320.0), // Tinggi maksimum disesuaikan
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: isScanning
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(
+                                color: theme.colorScheme.primary,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                "Scanning for devices...",
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : scanResults.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.bluetooth_disabled,
+                                    size: 36,
+                                    color: theme.colorScheme.onSurfaceVariant
+                                        .withOpacity(0.7),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    "No devices found",
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : ListView.separated(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              itemCount: scanResults.length,
+                              separatorBuilder: (_, __) => Divider(
+                                height: 1,
+                                indent: 8,
+                                endIndent: 8,
+                                color:
+                                    theme.colorScheme.outline.withOpacity(0.3),
+                              ),
+                              itemBuilder: (context, index) {
+                                final device = scanResults[index].device;
+                                final bool isContourDevice = device.name
+                                    .toLowerCase()
+                                    .contains('contour');
+
+                                return ListTile(
+                                  dense: true,
+                                  visualDensity: VisualDensity.compact,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 4),
+                                  leading: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: isContourDevice
+                                          ? Colors
+                                              .green // Ubah warna background menjadi hijau untuk Contour
+                                          : theme.colorScheme.surfaceVariant,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.bluetooth,
+                                      size: 16,
+                                      color: isContourDevice
+                                          ? Colors
+                                              .white // Ikon putih untuk background hijau
+                                          : theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  title: Text(
+                                    device.name.isEmpty
+                                        ? "Unnamed Device"
+                                        : device.name,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: theme.colorScheme.onSurface,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  subtitle: Text(
+                                    device.id.toString(),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  trailing: isContourDevice
+                                      ? Icon(
+                                          Icons.check_circle,
+                                          color: Colors
+                                              .green, // Warna ikon checklist menjadi hijau
+                                          size: 16,
+                                        )
+                                      : null,
+                                  onTap: () {
+                                    Navigator.of(context).pop();
+                                    widget.onDeviceSelected(
+                                        device, isContourDevice);
+                                  },
+                                );
+                              },
+                            ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Tombol dengan layout yang responsif
+              Row(
+                mainAxisAlignment:
+                    MainAxisAlignment.center, // Posisikan tombol di tengah
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: Icon(Icons.close,
+                        size: 16, color: theme.colorScheme.error),
+                    label: Text('Cancel'),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: theme.colorScheme.error),
+                      foregroundColor: theme.colorScheme.error,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: isScanning ? null : _refreshScan,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                    ),
+                    icon: Icon(Icons.refresh, size: 16, color: Colors.white),
+                    label: Text('Rescan'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        TextButton(
-          onPressed: isScanning ? null : _refreshScan,
-          child: const Text('Scan Again'),
-        ),
-      ],
+      ),
     );
   }
+  // Widget build(BuildContext context) {
+  //   return AlertDialog(
+  //     title: const Text("Select Bluetooth Device"),
+  //     content: SizedBox(
+  //       height: 200,
+  //       width: 300,
+  //       child: isScanning
+  //           ? const Center(
+  //               child: Column(
+  //                 mainAxisSize: MainAxisSize.min,
+  //                 children: [
+  //                   CircularProgressIndicator(),
+  //                   SizedBox(height: 16),
+  //                   Text("Scanning for devices..."),
+  //                 ],
+  //               ),
+  //             )
+  //           : scanResults.isEmpty
+  //               ? const Center(
+  //                   child: Text("No devices found"),
+  //                 )
+  //               : ListView.builder(
+  //                   itemCount: scanResults.length,
+  //                   itemBuilder: (context, index) {
+  //                     final device = scanResults[index].device;
+  //                     final bool isContourDevice =
+  //                         device.name.toLowerCase().contains('contour');
+
+  //                     return ListTile(
+  //                       title: Text(
+  //                         device.name,
+  //                         style: const TextStyle(fontWeight: FontWeight.bold),
+  //                       ),
+  //                       subtitle: Text(device.id.toString()),
+  //                       trailing: isContourDevice
+  //                           ? const Icon(Icons.check_circle,
+  //                               color: Colors.green)
+  //                           : null,
+  //                       onTap: () {
+  //                         Navigator.of(context).pop();
+  //                         widget.onDeviceSelected(device, isContourDevice);
+  //                       },
+  //                     );
+  //                   },
+  //                 ),
+  //     ),
+  //     actions: [
+  //       TextButton(
+  //         onPressed: () => Navigator.of(context).pop(),
+  //         child: const Text('Cancel'),
+  //       ),
+  //       TextButton(
+  //         onPressed: isScanning ? null : _refreshScan,
+  //         child: const Text('Scan Again'),
+  //       ),
+  //     ],
+  //   );
+  // }
 }

@@ -1,22 +1,14 @@
-// lib/config/api_config.dart
-
 import 'package:dio/dio.dart';
 
 class ApiConfig {
-  // URL API dasar untuk mode pengembangan (development)
+  // URLs remain the same
   static const String devBaseUrl = 'http://192.168.18.29:5000';
-
-  // URL API dasar untuk mode produksi
-  // Ganti dengan URL produksi Anda saat aplikasi siap dirilis
   static const String prodBaseUrl = 'https://api.cosaapp.com';
-
-  // Flag untuk menentukan mode aplikasi (development atau production)
   static const bool isProduction = false;
 
-  // Getter untuk mendapatkan baseUrl sesuai dengan mode aplikasi
   static String get baseUrl => isProduction ? prodBaseUrl : devBaseUrl;
 
-  // Mendapatkan instance Dio yang sudah dikonfigurasi
+  // Dio client setup remains the same
   static Dio getDioClient({String? token}) {
     Dio dio = Dio(BaseOptions(
       baseUrl: baseUrl,
@@ -30,7 +22,6 @@ class ApiConfig {
       },
     ));
 
-    // Add interceptor for logging
     dio.interceptors.add(LogInterceptor(
       requestBody: true,
       responseBody: true,
@@ -40,7 +31,55 @@ class ApiConfig {
     return dio;
   }
 
-  // Endpoint API
+  // New function to handle POST requests
+  static Future<Response> postData({
+    required String endpoint,
+    required Map<String, dynamic> data,
+    String? token,
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    final dio = getDioClient(token: token);
+
+    try {
+      final response = await dio.post(
+        endpoint,
+        data: data,
+        queryParameters: queryParameters,
+      );
+
+      return response;
+    } on DioException catch (e) {
+      // Log the error and rethrow
+      print('Error posting data: ${e.message}');
+      rethrow;
+    }
+  }
+
+  // Function to handle data updates
+  static Future<Response> updateData({
+    required String endpoint,
+    required Map<String, dynamic> data,
+    String? token,
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    final dio = getDioClient(token: token);
+
+    try {
+      final response = await dio.put(
+        endpoint,
+        data: data,
+        queryParameters: queryParameters,
+      );
+
+      return response;
+    } on DioException catch (e) {
+      // Log the error and rethrow
+      print('Error updating data: ${e.message}');
+      rethrow;
+    }
+  }
+
+  // Existing endpoints
   static const String loginEndpoint = '/auth/login';
   static const String registerEndpoint = '/auth/register';
   static const String dashboardEndpoint = '/dashboard';
@@ -48,13 +87,28 @@ class ApiConfig {
   static const String patientEndpoint = '/api/patients';
   static const String testGlucosaPatientEndpoint =
       '/api/test-glucosa/patient/{patientId}/glucose-tests';
+  static const String updateIsValidation =
+      '/api/test-glucosa/{patiendId}/validation';
+  static const String connectionStatus = '/api/connection-status';
 
-  // Fungsi untuk membuat URL lengkap dengan endpoint
+  // New endpoint for general data update
+  static const String updateDataEndpoint = '/api/update-data';
+
+  // Your existing URL formatter
   static String getUrl(String endpoint) {
-    // Pastikan endpoint tidak memiliki ganda slash
     if (endpoint.startsWith('/')) {
       endpoint = endpoint.substring(1);
     }
     return '$baseUrl/$endpoint';
+  }
+
+  // Helper method for replacing path parameters
+  static String replacePathParameters(
+      String endpoint, Map<String, dynamic> parameters) {
+    String result = endpoint;
+    parameters.forEach((key, value) {
+      result = result.replaceAll('{$key}', value.toString());
+    });
+    return result;
   }
 }

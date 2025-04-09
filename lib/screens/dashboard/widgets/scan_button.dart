@@ -48,6 +48,7 @@ class ScanButton extends StatelessWidget {
   void _showBluetoothDialog(BuildContext context) {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text("Bluetooth Activation Failed"),
         content: const Text("Cannot turn on Bluetooth automatically. "

@@ -215,15 +215,15 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                             statusText = 'Very High';
                           }
 
-                          // Safely get unit value with fallback
                           String unit = result['unit'] ?? 'mg/dL';
-
-                          // Safely get device name with fallback
                           String deviceName =
                               result['device_name'] ?? 'Unknown Device';
-
-                          // Safely get metode with fallback
                           String metode = result['metode'] ?? 'Not specified';
+                          bool isValidated = result['is_validation'] == 1;
+                          Color validationColor =
+                              isValidated ? Colors.green : Colors.orange;
+                          String validationText =
+                              isValidated ? 'Validated' : 'Not Validated';
 
                           return Card(
                             margin: const EdgeInsets.symmetric(
@@ -312,6 +312,249 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                                           fontWeight: FontWeight.w500,
                                           fontSize: 14,
                                         ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            width: 12,
+                                            height: 12,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: validationColor,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            validationText,
+                                            style: TextStyle(
+                                              color: validationColor,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      Switch(
+                                        value: isValidated,
+                                        activeColor: Colors.green,
+                                        onChanged: isValidated
+                                            ? null
+                                            : (value) async {
+                                                if (!isValidated) {
+                                                  final theme =
+                                                      Theme.of(context);
+                                                  try {
+                                                    // Menampilkan dialog konfirmasi dengan desain yang lebih elegan
+                                                    bool confirm =
+                                                        await showDialog(
+                                                              context: context,
+                                                              barrierDismissible:
+                                                                  false,
+                                                              builder:
+                                                                  (BuildContext
+                                                                      context) {
+                                                                return AlertDialog(
+                                                                  shape:
+                                                                      RoundedRectangleBorder(
+                                                                    borderRadius:
+                                                                        BorderRadius.circular(
+                                                                            16.0), // Border radius untuk dialog
+                                                                  ),
+                                                                  title: Row(
+                                                                    children: [
+                                                                      const Icon(
+                                                                          Icons
+                                                                              .check_circle_outline,
+                                                                          color: Colors
+                                                                              .green,
+                                                                          size:
+                                                                              30), // Ikon untuk judul
+                                                                      const SizedBox(
+                                                                          width:
+                                                                              10),
+                                                                      const Text(
+                                                                        "Validation Confirmation",
+                                                                        style: TextStyle(
+                                                                            fontSize:
+                                                                                18,
+                                                                            fontWeight:
+                                                                                FontWeight.bold),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                  content:
+                                                                      const Text(
+                                                                    "Are you sure you want to validate this test result?",
+                                                                    style: TextStyle(
+                                                                        fontSize:
+                                                                            14,
+                                                                        color: Colors
+                                                                            .black87),
+                                                                  ),
+                                                                  actions: [
+                                                                    Row(
+                                                                      mainAxisAlignment:
+                                                                          MainAxisAlignment
+                                                                              .spaceBetween, // Memastikan tombol sejajar kiri dan kanan
+                                                                      children: [
+                                                                        TextButton(
+                                                                          onPressed: () =>
+                                                                              Navigator.of(context).pop(false),
+                                                                          style:
+                                                                              OutlinedButton.styleFrom(
+                                                                            side:
+                                                                                BorderSide(color: theme.colorScheme.error),
+                                                                            padding:
+                                                                                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                                                          ),
+                                                                          child:
+                                                                              Row(
+                                                                            mainAxisSize:
+                                                                                MainAxisSize.min, // Agar Row hanya memakan ruang yang diperlukan
+                                                                            children: [
+                                                                              Icon(
+                                                                                Icons.close, // Ikon "X"
+                                                                                color: theme.colorScheme.error, // Warna ikon sesuai dengan tema
+                                                                                size: 18, // Ukuran ikon (opsional, sesuaikan jika diperlukan)
+                                                                              ),
+                                                                              const SizedBox(width: 8), // Jarak antara ikon dan teks
+                                                                              Text(
+                                                                                "Cancel",
+                                                                                style: TextStyle(color: theme.colorScheme.error),
+                                                                              ),
+                                                                            ],
+                                                                          ),
+                                                                        ),
+                                                                        const SizedBox(
+                                                                            width:
+                                                                                8),
+                                                                        ElevatedButton
+                                                                            .icon(
+                                                                          onPressed: () =>
+                                                                              Navigator.of(context).pop(true),
+                                                                          icon: Icon(
+                                                                              Icons.check,
+                                                                              size: 16,
+                                                                              color: Colors.white), // Ikon putih
+                                                                          label:
+                                                                              Text(
+                                                                            'Validation',
+                                                                            style:
+                                                                                TextStyle(color: Colors.white), // Teks putih
+                                                                          ),
+                                                                          style:
+                                                                              ElevatedButton.styleFrom(
+                                                                            backgroundColor:
+                                                                                Colors.green, // Warna latar tombol Validasi
+                                                                            foregroundColor:
+                                                                                Colors.white, // Warna teks tombol Validasi
+                                                                            padding:
+                                                                                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                                                          ),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  ],
+                                                                );
+                                                              },
+                                                            ) ??
+                                                            false;
+
+                                                    if (confirm) {
+                                                      // Dapatkan token dari local storage
+                                                      final prefs =
+                                                          await SharedPreferences
+                                                              .getInstance();
+                                                      final token = prefs
+                                                          .getString('token');
+                                                      if (token == null) {
+                                                        ScaffoldMessenger.of(
+                                                                context)
+                                                            .showSnackBar(
+                                                          const SnackBar(
+                                                            content: Text(
+                                                                'Token is expired. Please login again.'),
+                                                            backgroundColor:
+                                                                Colors.red,
+                                                          ),
+                                                        );
+                                                        return;
+                                                      }
+                                                      // Ambil ID dari hasil tes
+                                                      final testId =
+                                                          result['id']
+                                                              .toString();
+                                                      // Buat endpoint dengan mengganti parameter
+                                                      final endpoint = ApiConfig
+                                                          .replacePathParameters(
+                                                        ApiConfig
+                                                            .updateIsValidation,
+                                                        {'patiendId': testId},
+                                                      );
+                                                      // Kirim permintaan update
+                                                      final response =
+                                                          await ApiConfig
+                                                              .updateData(
+                                                        endpoint: endpoint,
+                                                        data: {
+                                                          'is_validation': 1
+                                                        },
+                                                        token: token,
+                                                      );
+                                                      if (response.statusCode ==
+                                                              200 ||
+                                                          response.statusCode ==
+                                                              201) {
+                                                        // Update data lokal
+                                                        setState(() {
+                                                          _testResults[index][
+                                                              'is_validation'] = 1;
+                                                        });
+                                                        ScaffoldMessenger.of(
+                                                                context)
+                                                            .showSnackBar(
+                                                          const SnackBar(
+                                                            content: Text(
+                                                                'Data successfully validated'),
+                                                            backgroundColor:
+                                                                Colors.green,
+                                                          ),
+                                                        );
+                                                      } else {
+                                                        ScaffoldMessenger.of(
+                                                                context)
+                                                            .showSnackBar(
+                                                          const SnackBar(
+                                                            content: Text(
+                                                                'Failed to validate data'),
+                                                            backgroundColor:
+                                                                Colors.red,
+                                                          ),
+                                                        );
+                                                      }
+                                                    }
+                                                  } catch (e) {
+                                                    print(
+                                                        'Error updating validation status: $e');
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                            'Error: ${e.toString()}'),
+                                                        backgroundColor:
+                                                            Colors.red,
+                                                      ),
+                                                    );
+                                                  }
+                                                }
+                                              },
                                       ),
                                     ],
                                   ),
