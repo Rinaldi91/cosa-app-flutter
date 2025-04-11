@@ -81,18 +81,16 @@ class _ResultPageState extends State<ResultPage> {
     try {
       // Pastikan ada delay kecil antara scan
       await Future.delayed(const Duration(milliseconds: 100));
-
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => const BarcodeScannerWithOverlay(),
         ),
       );
-
       if (result != null && mounted) {
         setState(() {
-          _searchController.text = result;
-          _filterPatients(result);
+          _searchController.text = result; // Set hasil scan ke search bar
+          _filterPatients(result); // Lakukan pencarian dengan hasil scan
         });
       }
     } catch (e) {
@@ -108,38 +106,35 @@ class _ResultPageState extends State<ResultPage> {
     }
   }
 
-  Future<void> _fetchPatients() async {
+  Future<void> _fetchPatients({String? search}) async {
     setState(() {
       _isLoading = true; // Set loading to true when fetching starts
     });
-
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
-
       if (token == null) {
         print('Token tidak ditemukan, silakan login kembali.');
         return;
       }
-
-      // Gunakan instance Dio dari ApiConfig
       final Dio dio = ApiConfig.getDioClient(token: token);
-
-      // Gunakan URL lengkap dengan `getUrl`
       final String url = ApiConfig.getUrl(ApiConfig.patientEndpoint);
-
       final response = await dio.get(
         url,
-        queryParameters: {'search': _currentPage, 'limit': _itemsPerPage},
+        queryParameters: {
+          'page': _currentPage, // Nomor halaman
+          'limit': _itemsPerPage, // Jumlah item per halaman
+          if (search != null && search.isNotEmpty)
+            'search': search, // Pencarian
+        },
       );
-
       if (response.statusCode == 200) {
         final data = response.data;
         setState(() {
           _patients = (data['data']['patients'] as List)
               .map((item) => Patient.fromJson(item))
               .toList();
-          _filteredPatients = List.from(_patients);
+          _filteredPatients = List.from(_patients); // Reset filtered patients
           _totalPages = data['data']['pagination']['totalPages'];
         });
       }
@@ -160,16 +155,11 @@ class _ResultPageState extends State<ResultPage> {
 
   void _filterPatients(String query) {
     setState(() {
-      _filteredPatients = _patients.where((patient) {
-        return patient.name.toLowerCase().contains(query.toLowerCase()) ||
-            patient.patientCode.toLowerCase().contains(query.toLowerCase()) ||
-            patient.barcode.toLowerCase().contains(query.toLowerCase()) ||
-            patient.dateOfBirth.toLowerCase().contains(query.toLowerCase()) ||
-            patient.address.toLowerCase().contains(query.toLowerCase());
-      }).toList();
+      _currentPage = 1; // Reset ke halaman pertama saat melakukan pencarian
+      _searchController.text = query; // Update teks pencarian
     });
+    _fetchPatients(search: query); // Panggil API dengan parameter pencarian
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -183,6 +173,7 @@ class _ResultPageState extends State<ResultPage> {
       ),
       body: Column(
         children: [
+          // Search Bar
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: TextField(
@@ -231,10 +222,11 @@ class _ResultPageState extends State<ResultPage> {
               onChanged: (value) {
                 setState(
                     () {}); // Perbarui UI agar ikon "X" muncul saat input terisi
-                _filterPatients(value);
+                _filterPatients(value); // Lakukan pencarian
               },
             ),
           ),
+          // Daftar Pasien
           Expanded(
             child: _isLoading
                 ? Center(
@@ -249,9 +241,7 @@ class _ResultPageState extends State<ResultPage> {
                         Text(
                           'Loading Data...',
                           style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
+                              fontSize: 16, fontWeight: FontWeight.w500),
                         ),
                       ],
                     ),
@@ -347,7 +337,6 @@ class _ResultPageState extends State<ResultPage> {
                                         Text(patient.getAgeList().join(', ')),
                                       ],
                                     ),
-                                    // Tambahkan indikator bahwa card bisa diklik
                                     const Padding(
                                       padding: EdgeInsets.only(top: 10),
                                       child: Row(
@@ -357,9 +346,8 @@ class _ResultPageState extends State<ResultPage> {
                                           Text(
                                             'View Test Results',
                                             style: TextStyle(
-                                              color: Colors.blueAccent,
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                                color: Colors.blueAccent,
+                                                fontWeight: FontWeight.bold),
                                           ),
                                           SizedBox(width: 5),
                                           Icon(
@@ -377,6 +365,35 @@ class _ResultPageState extends State<ResultPage> {
                           );
                         },
                       ),
+          ),
+          // Tombol Navigasi Halaman
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: _currentPage > 1
+                    ? () {
+                        setState(() {
+                          _currentPage--;
+                        });
+                        _fetchPatients();
+                      }
+                    : null, // Nonaktifkan tombol jika sudah di halaman pertama
+              ),
+              Text('Page $_currentPage of $_totalPages'),
+              IconButton(
+                icon: const Icon(Icons.arrow_forward),
+                onPressed: _currentPage < _totalPages
+                    ? () {
+                        setState(() {
+                          _currentPage++;
+                        });
+                        _fetchPatients();
+                      }
+                    : null, // Nonaktifkan tombol jika sudah di halaman terakhir
+              ),
+            ],
           ),
         ],
       ),
