@@ -69,6 +69,7 @@ class _ResultPageState extends State<ResultPage> {
   final TextEditingController _searchController = TextEditingController();
   bool _isLoading = false; // Add loading state
   List<dynamic> _testResults = [];
+  int _totalPatients = 0;
 
   @override
   void initState() {
@@ -136,6 +137,7 @@ class _ResultPageState extends State<ResultPage> {
               .toList();
           _filteredPatients = List.from(_patients); // Reset filtered patients
           _totalPages = data['data']['pagination']['totalPages'];
+          _totalPatients = data['data']['pagination']['totalPatients'] ?? 0;
         });
       }
     } catch (e) {
@@ -381,7 +383,8 @@ class _ResultPageState extends State<ResultPage> {
                       }
                     : null, // Nonaktifkan tombol jika sudah di halaman pertama
               ),
-              Text('Page $_currentPage of $_totalPages'),
+              Text(
+                  'Showing page $_currentPage to $_totalPages of $_totalPatients'),
               IconButton(
                 icon: const Icon(Icons.arrow_forward),
                 onPressed: _currentPage < _totalPages

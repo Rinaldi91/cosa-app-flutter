@@ -1,0 +1,1 @@
+ D:\\AndroidAPP\\cosaapp\\.dart_tool\\flutter_build\\5f3176e2bf072f8bb6c5a3eaab9b3b6b\\native_assets.yaml: 
