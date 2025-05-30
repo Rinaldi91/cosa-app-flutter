@@ -264,13 +264,13 @@ class __FormContentState extends State<_FormContent> {
                   prefixIcon: const Icon(Icons.email_outlined),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                        color: Color.fromARGB(255, 0, 122, 255)),
+                    borderSide:
+                        const BorderSide(color: Color.fromARGB(255, 179, 4, 4)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(
-                        color: Color.fromARGB(255, 0, 122, 255), width: 2),
+                        color: Color.fromARGB(255, 179, 4, 4), width: 2),
                   ),
                 ),
                 validator: (value) => (value == null || !value.contains('@'))
@@ -286,13 +286,13 @@ class __FormContentState extends State<_FormContent> {
                   prefixIcon: const Icon(Icons.lock_outline),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                        color: Color.fromARGB(255, 0, 122, 255)),
+                    borderSide:
+                        const BorderSide(color: Color.fromARGB(255, 179, 4, 4)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(
-                        color: Color.fromARGB(255, 0, 122, 255), width: 2),
+                        color: Color.fromARGB(255, 179, 4, 4), width: 2),
                   ),
                   suffixIcon: IconButton(
                     icon: Icon(
@@ -318,7 +318,7 @@ class __FormContentState extends State<_FormContent> {
                     width: 24,
                     child: Checkbox(
                       value: _rememberMe,
-                      activeColor: const Color.fromARGB(255, 0, 122, 255),
+                      activeColor: const Color.fromARGB(255, 179, 4, 4),
                       onChanged: (bool? value) {
                         setState(() {
                           _rememberMe = value ?? false;
@@ -343,7 +343,7 @@ class __FormContentState extends State<_FormContent> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 0, 122, 255),
+                    backgroundColor: const Color.fromARGB(255, 179, 4, 4),
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),

@@ -65,7 +65,9 @@ class _ConnectionStatusState extends State<ConnectionStatus> {
             height: 15,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: widget.isConnected ? Colors.green : Colors.red,
+              color: widget.isConnected
+                  ? Colors.green
+                  : const Color.fromARGB(255, 179, 4, 4),
             ),
           ),
         ),
@@ -78,7 +80,9 @@ class _ConnectionStatusState extends State<ConnectionStatus> {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 20,
-              color: widget.isConnected ? Colors.green : Colors.red,
+              color: widget.isConnected
+                  ? Colors.green
+                  : const Color.fromARGB(255, 179, 4, 4),
             ),
           ),
         ),

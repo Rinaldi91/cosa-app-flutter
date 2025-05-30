@@ -166,12 +166,29 @@ class _ResultPageState extends State<ResultPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // appBar: AppBar(
+      //   title: const Text('Patient Result'),
+      //   titleTextStyle: const TextStyle(
+      //       color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+      //   centerTitle: true,
+      //   backgroundColor: Colors.blueAccent,
+      // ),
       appBar: AppBar(
-        title: const Text('Patient Result'),
-        titleTextStyle: const TextStyle(
-            color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-        centerTitle: true,
-        backgroundColor: Colors.blueAccent,
+        title: Row(
+          children: const [
+            Icon(Icons.analytics), // Icon for fan device
+            SizedBox(width: 8), // Spacing between icon and text
+            Text(
+              'Patient Result',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color.fromARGB(255, 179, 4, 4),
+        foregroundColor: Colors.white,
+        elevation: 2,
       ),
       body: Column(
         children: [
@@ -213,12 +230,12 @@ class _ResultPageState extends State<ResultPage> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide:
-                      const BorderSide(color: Color.fromARGB(255, 0, 122, 255)),
+                      const BorderSide(color: Color.fromARGB(255, 179, 4, 4)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(
-                      color: Color.fromARGB(255, 0, 122, 255), width: 2),
+                      color: Color.fromARGB(255, 179, 4, 4), width: 2),
                 ),
               ),
               onChanged: (value) {
@@ -237,7 +254,7 @@ class _ResultPageState extends State<ResultPage> {
                       children: const [
                         CircularProgressIndicator(
                           valueColor: AlwaysStoppedAnimation<Color>(
-                              Color.fromARGB(255, 0, 122, 255)),
+                              Color.fromARGB(255, 179, 4, 4)),
                         ),
                         SizedBox(height: 16),
                         Text(
@@ -249,15 +266,26 @@ class _ResultPageState extends State<ResultPage> {
                     ),
                   )
                 : _filteredPatients.isEmpty
-                    ? const Center(
-                        child: Card(
-                          margin: EdgeInsets.all(20),
-                          child: Padding(
-                            padding: EdgeInsets.all(20),
-                            child: Text(
-                              'Data Not Found',
-                              style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold),
+                    ? Center(
+                        child: SingleChildScrollView(
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 100),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(
+                                  Icons.search_off,
+                                  size: 80,
+                                  color: Colors.grey,
+                                ),
+                                SizedBox(height: 16),
+                                Text(
+                                  'Data not found',
+                                  style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -267,104 +295,112 @@ class _ResultPageState extends State<ResultPage> {
                         itemBuilder: (context, index) {
                           final patient = _filteredPatients[index];
                           return InkWell(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PatientTestResultPage(
-                                    patient: patient,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => PatientTestResultPage(
+                                      patient: patient,
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
-                            child: Card(
-                              margin: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 5),
-                              elevation: 3,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(15),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text('Name:',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.bold)),
-                                        Text(patient.name),
-                                      ],
-                                    ),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text('Code:',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.bold)),
-                                        Text(patient.patientCode),
-                                      ],
-                                    ),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text('Barcode:',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.bold)),
-                                        Text(patient.barcode),
-                                      ],
-                                    ),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text('DOB:',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.bold)),
-                                        Text(patient.getFormattedDate()),
-                                      ],
-                                    ),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text('Age:',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.bold)),
-                                        Text(patient.getAgeList().join(', ')),
-                                      ],
-                                    ),
-                                    const Padding(
-                                      padding: EdgeInsets.only(top: 10),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            'View Test Results',
-                                            style: TextStyle(
-                                                color: Colors.blueAccent,
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                          SizedBox(width: 5),
-                                          Icon(
-                                            Icons.arrow_forward_ios,
-                                            size: 14,
-                                            color: Colors.blueAccent,
-                                          ),
-                                        ],
-                                      ),
+                                );
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.grey.withOpacity(0.3),
+                                      spreadRadius: 1,
+                                      blurRadius: 4,
+                                      offset: Offset(0, 2),
                                     ),
                                   ],
                                 ),
-                              ),
-                            ),
-                          );
+                                child: Padding(
+                                  padding: const EdgeInsets.all(15),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const Text('Name:',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold)),
+                                          Text(patient.name),
+                                        ],
+                                      ),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const Text('Code:',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold)),
+                                          Text(patient.patientCode),
+                                        ],
+                                      ),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const Text('Barcode:',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold)),
+                                          Text(patient.barcode),
+                                        ],
+                                      ),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const Text('DOB:',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold)),
+                                          Text(patient.getFormattedDate()),
+                                        ],
+                                      ),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const Text('Age:',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold)),
+                                          Text(patient.getAgeList().join(', ')),
+                                        ],
+                                      ),
+                                      const Padding(
+                                        padding: EdgeInsets.only(top: 10),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              'View Test Results',
+                                              style: TextStyle(
+                                                  color: Colors.blueAccent,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                            SizedBox(width: 5),
+                                            Icon(
+                                              Icons.arrow_forward_ios,
+                                              size: 14,
+                                              color: Colors.blueAccent,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ));
                         },
                       ),
           ),

@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 const String glucoseService = '00001808-0000-1000-8000-00805f9b34fb';
 const String glucoseServiceUuid = "00001808-0000-1000-8000-00805f9b34fb";
@@ -83,30 +85,194 @@ class BluetoothUtils {
     }
   }
 
+  // static void showDisconnectionSnackBar(BuildContext context) {
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     const SnackBar(
+  //       content: Text('Device disconnected'),
+  //       backgroundColor: Colors.red,
+  //     ),
+  //   );
+  // }
   static void showDisconnectionSnackBar(BuildContext context) {
+    // Hapus snackbar yang sedang ditampilkan (jika ada)
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+    // Tampilkan snackbar disconnection yang lebih modern
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Device disconnected'),
-        backgroundColor: Colors.red,
+      SnackBar(
+        elevation: 6.0,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(10),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        content: Row(
+          children: [
+            const Icon(
+              Icons.bluetooth_disabled,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Device Disconnected.',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const Text(
+                    'Connection with the device has been lost.',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.orange.shade800,
+        duration: const Duration(seconds: 3),
+        action: SnackBarAction(
+          label: 'OK',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
       ),
     );
   }
+
+  // static void showConnectionSuccessSnackBar(
+  //     BuildContext context, String deviceName) {
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(
+  //       content: Text('Connected to $deviceName'),
+  //       backgroundColor: Colors.green,
+  //     ),
+  //   );
+  // }
 
   static void showConnectionSuccessSnackBar(
       BuildContext context, String deviceName) {
+    // Hapus snackbar yang sedang ditampilkan (jika ada)
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+    // Tampilkan snackbar yang lebih modern
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Connected to $deviceName'),
-        backgroundColor: Colors.green,
+        elevation: 6.0,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(10),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        content: Row(
+          children: [
+            const Icon(
+              Icons.bluetooth_connected,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Success',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    deviceName,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.green.shade800,
+        duration: const Duration(seconds: 3),
+        action: SnackBarAction(
+          label: 'OK',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
       ),
     );
   }
 
+  // static void showConnectionErrorSnackBar(BuildContext context, String error) {
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(
+  //       content: Text('Connection failed: $error'),
+  //       backgroundColor: Colors.red,
+  //     ),
+  //   );
+  // }
+
   static void showConnectionErrorSnackBar(BuildContext context, String error) {
+    // Hapus snackbar yang sedang ditampilkan (jika ada)
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+    // Tampilkan snackbar error yang lebih modern
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Connection failed: $error'),
-        backgroundColor: Colors.red,
+        elevation: 6.0,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(10),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        content: Row(
+          children: [
+            const Icon(
+              Icons.error_outline,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Connection Filed',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    error,
+                    style: const TextStyle(fontSize: 14),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.red.shade800,
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'Close',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
       ),
     );
   }
@@ -258,11 +424,11 @@ class BluetoothUtils {
           DateTime.utc(baseYear, month + 1, day, hours, minutes, seconds);
       debugPrint('Original device timestamp (UTC): ${timestamp.toString()}');
 
-      // Koreksi waktu: kurangi 7 menit dari waktu alat
-      // Ini akan menghasilkan waktu yang sesuai dengan yang ditampilkan di alat
-      timestamp = timestamp.subtract(const Duration(minutes: 7));
+      // Koreksi waktu: kurangi 17 menit dari waktu alat
+      // Karena ada selisih 7 menit lebih banyak, jadi total koreksi: 10 + 7 = 17 menit
+      timestamp = timestamp.subtract(const Duration(minutes: 17));
       debugPrint(
-          'Timestamp after -7 minute correction: ${timestamp.toString()}');
+          'Timestamp after -17 minute correction: ${timestamp.toString()}');
 
       // Ubah ke zona waktu Jakarta (UTC+7)
       final indonesiaTime = timestamp.toUtc().add(const Duration(hours: 7));
@@ -281,6 +447,35 @@ class BluetoothUtils {
         formattedTimestamp: formattedTimestamp,
         mealContext: mealContext,
       );
+
+      // // Buat timestamp UTC dari data alat
+      // DateTime timestamp =
+      //     DateTime.utc(baseYear, month + 1, day, hours, minutes, seconds);
+      // debugPrint('Original device timestamp (UTC): ${timestamp.toString()}');
+
+      // // Koreksi waktu: kurangi 7 menit dari waktu alat
+      // // Ini akan menghasilkan waktu yang sesuai dengan yang ditampilkan di alat
+      // timestamp = timestamp.subtract(const Duration(minutes: 7));
+      // debugPrint(
+      //     'Timestamp after -7 minute correction: ${timestamp.toString()}');
+
+      // // Ubah ke zona waktu Jakarta (UTC+7)
+      // final indonesiaTime = timestamp.toUtc().add(const Duration(hours: 7));
+      // debugPrint('Local timestamp (Jakarta): ${indonesiaTime.toString()}');
+
+      // // Format timestamp untuk Indonesia dengan format 24 jam
+      // final formattedTimestamp =
+      //     DateFormat('dd/MM/yyyy HH:mm:ss', 'id_ID').format(indonesiaTime);
+      // debugPrint('Formatted Timestamp (Jakarta): $formattedTimestamp');
+
+      // return GlucoseReading(
+      //   sequenceNumber: sequenceNumber,
+      //   timestamp: indonesiaTime,
+      //   glucoseValue: glucoseValue,
+      //   unit: 'mg/dL',
+      //   formattedTimestamp: formattedTimestamp,
+      //   mealContext: mealContext,
+      // );
     } catch (e, stackTrace) {
       debugPrint('Error parsing glucose data: $e');
       debugPrint('Stack trace: $stackTrace');
@@ -430,8 +625,207 @@ class _DeviceSelectionDialogState extends State<DeviceSelectionDialog> {
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
     // Buat dialog lebih responsif dengan lebar maksimum
-    final dialogWidth =
-        min(size.width * 0.85, 600.0); // Lebar maksimum untuk tablet
+    // final dialogWidth =
+    //     min(size.width * 0.85, 600.0); // Lebar maksimum untuk tablet
+
+    final dialogWidth = size.width;
+
+    // return Dialog(
+    //   shape: RoundedRectangleBorder(
+    //     borderRadius: BorderRadius.circular(16),
+    //   ),
+    //   elevation: 8,
+    //   backgroundColor: theme.colorScheme.surface,
+    //   child: SingleChildScrollView(
+    //     // Gunakan SingleChildScrollView untuk menghindari overflow
+    //     child: Padding(
+    //       padding: const EdgeInsets.all(20),
+    //       child: Column(
+    //         mainAxisSize: MainAxisSize.min,
+    //         crossAxisAlignment: CrossAxisAlignment.start,
+    //         children: [
+    //           // Judul yang responsif
+    //           Row(
+    //             crossAxisAlignment: CrossAxisAlignment.center,
+    //             children: [
+    //               Icon(
+    //                 Icons.bluetooth_searching,
+    //                 color: theme.colorScheme.primary,
+    //                 size: 24,
+    //               ),
+    //               const SizedBox(width: 8),
+    //               Flexible(
+    //                 child: Text(
+    //                   "Select Bluetooth Device",
+    //                   style: theme.textTheme.titleLarge?.copyWith(
+    //                     fontWeight: FontWeight.bold,
+    //                     color: theme.colorScheme.onSurface,
+    //                     fontSize: 18,
+    //                   ),
+    //                   overflow: TextOverflow.ellipsis,
+    //                 ),
+    //               ),
+    //             ],
+    //           ),
+    //           const SizedBox(height: 16),
+    //           // Area konten dengan tinggi dan lebar responsif
+    //           ConstrainedBox(
+    //             constraints: BoxConstraints(
+    //               maxWidth: dialogWidth, // Sesuaikan lebar konten dengan dialog
+    //             ),
+    //             child: Container(
+    //               height: min(
+    //                   size.height * 0.4, 320.0), // Tinggi maksimum disesuaikan
+    //               decoration: BoxDecoration(
+    //                 color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+    //                 borderRadius: BorderRadius.circular(12),
+    //               ),
+    //               child: isScanning
+    //                   ? Center(
+    //                       child: Column(
+    //                         mainAxisSize: MainAxisSize.min,
+    //                         children: [
+    //                           CircularProgressIndicator(
+    //                             color: theme.colorScheme.primary,
+    //                           ),
+    //                           const SizedBox(height: 12),
+    //                           Text(
+    //                             "Scanning for devices...",
+    //                             style: theme.textTheme.bodyMedium?.copyWith(
+    //                               color: theme.colorScheme.onSurfaceVariant,
+    //                             ),
+    //                           ),
+    //                         ],
+    //                       ),
+    //                     )
+    //                   : scanResults.isEmpty
+    //                       ? Center(
+    //                           child: Column(
+    //                             mainAxisSize: MainAxisSize.min,
+    //                             children: [
+    //                               Icon(
+    //                                 Icons.bluetooth_disabled,
+    //                                 size: 36,
+    //                                 color: theme.colorScheme.onSurfaceVariant
+    //                                     .withOpacity(0.7),
+    //                               ),
+    //                               const SizedBox(height: 12),
+    //                               Text(
+    //                                 "No devices found",
+    //                                 style: theme.textTheme.bodyMedium?.copyWith(
+    //                                   color: theme.colorScheme.onSurfaceVariant,
+    //                                 ),
+    //                               ),
+    //                             ],
+    //                           ),
+    //                         )
+    //                       : ListView.separated(
+    //                           padding: const EdgeInsets.symmetric(vertical: 8),
+    //                           itemCount: scanResults.length,
+    //                           separatorBuilder: (_, __) => Divider(
+    //                             height: 1,
+    //                             indent: 8,
+    //                             endIndent: 8,
+    //                             color:
+    //                                 theme.colorScheme.outline.withOpacity(0.3),
+    //                           ),
+    //                           itemBuilder: (context, index) {
+    //                             final device = scanResults[index].device;
+    //                             final bool isContourDevice = device.name
+    //                                 .toLowerCase()
+    //                                 .contains('contour');
+
+    //                             return ListTile(
+    //                               dense: true,
+    //                               visualDensity: VisualDensity.compact,
+    //                               contentPadding: const EdgeInsets.symmetric(
+    //                                   horizontal: 12, vertical: 4),
+    //                               leading: Container(
+    //                                 padding: const EdgeInsets.all(6),
+    //                                 decoration: BoxDecoration(
+    //                                   color: isContourDevice
+    //                                       ? Colors
+    //                                           .green // Ubah warna background menjadi hijau untuk Contour
+    //                                       : theme.colorScheme.surfaceVariant,
+    //                                   shape: BoxShape.circle,
+    //                                 ),
+    //                                 child: Icon(
+    //                                   Icons.bluetooth,
+    //                                   size: 16,
+    //                                   color: isContourDevice
+    //                                       ? Colors
+    //                                           .white // Ikon putih untuk background hijau
+    //                                       : theme.colorScheme.onSurfaceVariant,
+    //                                 ),
+    //                               ),
+    //                               title: Text(
+    //                                 device.name.isEmpty
+    //                                     ? "Unnamed Device"
+    //                                     : device.name,
+    //                                 style: theme.textTheme.bodyMedium?.copyWith(
+    //                                   fontWeight: FontWeight.bold,
+    //                                   color: theme.colorScheme.onSurface,
+    //                                 ),
+    //                                 overflow: TextOverflow.ellipsis,
+    //                               ),
+    //                               subtitle: Text(
+    //                                 device.id.toString(),
+    //                                 style: theme.textTheme.bodySmall?.copyWith(
+    //                                   color: theme.colorScheme.onSurfaceVariant,
+    //                                 ),
+    //                                 overflow: TextOverflow.ellipsis,
+    //                               ),
+    //                               trailing: isContourDevice
+    //                                   ? Icon(
+    //                                       Icons.check_circle,
+    //                                       color: Colors
+    //                                           .green, // Warna ikon checklist menjadi hijau
+    //                                       size: 16,
+    //                                     )
+    //                                   : null,
+    //                               onTap: () {
+    //                                 Navigator.of(context).pop();
+    //                                 widget.onDeviceSelected(
+    //                                     device, isContourDevice);
+    //                               },
+    //                             );
+    //                           },
+    //                         ),
+    //             ),
+    //           ),
+    //           const SizedBox(height: 20),
+    //           // Tombol dengan layout yang responsif
+    //           Row(
+    //             mainAxisAlignment:
+    //                 MainAxisAlignment.center, // Posisikan tombol di tengah
+    //             children: [
+    //               OutlinedButton.icon(
+    //                 onPressed: () => Navigator.of(context).pop(),
+    //                 icon: Icon(Icons.close,
+    //                     size: 16, color: theme.colorScheme.error),
+    //                 label: Text('Cancel'),
+    //                 style: OutlinedButton.styleFrom(
+    //                   side: BorderSide(color: theme.colorScheme.error),
+    //                   foregroundColor: theme.colorScheme.error,
+    //                 ),
+    //               ),
+    //               const SizedBox(width: 8),
+    //               ElevatedButton.icon(
+    //                 onPressed: isScanning ? null : _refreshScan,
+    //                 style: ElevatedButton.styleFrom(
+    //                   backgroundColor: Colors.red,
+    //                   foregroundColor: Colors.white,
+    //                 ),
+    //                 icon: Icon(Icons.refresh, size: 16, color: Colors.white),
+    //                 label: Text('Rescan'),
+    //               ),
+    //             ],
+    //           ),
+    //         ],
+    //       ),
+    //     ),
+    //   ),
+    // );
 
     return Dialog(
       shape: RoundedRectangleBorder(
@@ -439,15 +833,15 @@ class _DeviceSelectionDialogState extends State<DeviceSelectionDialog> {
       ),
       elevation: 8,
       backgroundColor: theme.colorScheme.surface,
+      insetPadding: const EdgeInsets.symmetric(
+          horizontal: 16), // Menghapus padding dialog default
       child: SingleChildScrollView(
-        // Gunakan SingleChildScrollView untuk menghindari overflow
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Judul yang responsif
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -471,15 +865,12 @@ class _DeviceSelectionDialogState extends State<DeviceSelectionDialog> {
                 ],
               ),
               const SizedBox(height: 16),
-              // Area konten dengan tinggi dan lebar responsif
               ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxWidth:
-                      dialogWidth - 40, // Sesuaikan lebar konten dengan dialog
+                  maxWidth: double.infinity, // Lebar penuh
                 ),
                 child: Container(
-                  height: min(
-                      size.height * 0.4, 320.0), // Tinggi maksimum disesuaikan
+                  height: min(size.height * 0.4, 320.0),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(12),
@@ -490,7 +881,7 @@ class _DeviceSelectionDialogState extends State<DeviceSelectionDialog> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               CircularProgressIndicator(
-                                color: theme.colorScheme.primary,
+                                color: Color.fromARGB(255, 179, 4, 4),
                               ),
                               const SizedBox(height: 12),
                               Text(
@@ -548,8 +939,7 @@ class _DeviceSelectionDialogState extends State<DeviceSelectionDialog> {
                                     padding: const EdgeInsets.all(6),
                                     decoration: BoxDecoration(
                                       color: isContourDevice
-                                          ? Colors
-                                              .green // Ubah warna background menjadi hijau untuk Contour
+                                          ? Colors.green
                                           : theme.colorScheme.surfaceVariant,
                                       shape: BoxShape.circle,
                                     ),
@@ -557,8 +947,7 @@ class _DeviceSelectionDialogState extends State<DeviceSelectionDialog> {
                                       Icons.bluetooth,
                                       size: 16,
                                       color: isContourDevice
-                                          ? Colors
-                                              .white // Ikon putih untuk background hijau
+                                          ? Colors.white
                                           : theme.colorScheme.onSurfaceVariant,
                                     ),
                                   ),
@@ -582,8 +971,7 @@ class _DeviceSelectionDialogState extends State<DeviceSelectionDialog> {
                                   trailing: isContourDevice
                                       ? Icon(
                                           Icons.check_circle,
-                                          color: Colors
-                                              .green, // Warna ikon checklist menjadi hijau
+                                          color: Colors.green,
                                           size: 16,
                                         )
                                       : null,
@@ -598,10 +986,8 @@ class _DeviceSelectionDialogState extends State<DeviceSelectionDialog> {
                 ),
               ),
               const SizedBox(height: 20),
-              // Tombol dengan layout yang responsif
               Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.center, // Posisikan tombol di tengah
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   OutlinedButton.icon(
                     onPressed: () => Navigator.of(context).pop(),
@@ -617,7 +1003,7 @@ class _DeviceSelectionDialogState extends State<DeviceSelectionDialog> {
                   ElevatedButton.icon(
                     onPressed: isScanning ? null : _refreshScan,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
+                      backgroundColor: const Color.fromARGB(255, 179, 4, 4),
                       foregroundColor: Colors.white,
                     ),
                     icon: Icon(Icons.refresh, size: 16, color: Colors.white),
@@ -631,6 +1017,7 @@ class _DeviceSelectionDialogState extends State<DeviceSelectionDialog> {
       ),
     );
   }
+
   // Widget build(BuildContext context) {
   //   return AlertDialog(
   //     title: const Text("Select Bluetooth Device"),

@@ -3,7 +3,8 @@ import 'package:dio/dio.dart';
 class ApiConfig {
   // URLs remain the same
   static const String devBaseUrl = 'http://192.168.18.29:5000';
-  static const String prodBaseUrl = 'https://api.cosaapp.com';
+  static const String prodBaseUrl =
+      'https://ff5e-2001-448a-10ca-237d-c14-8bf1-814c-3df.ngrok-free.app';
   static const bool isProduction = false;
 
   static String get baseUrl => isProduction ? prodBaseUrl : devBaseUrl;
@@ -31,7 +32,6 @@ class ApiConfig {
     return dio;
   }
 
-  // New function to handle POST requests
   static Future<Response> postData({
     required String endpoint,
     required Map<String, dynamic> data,
@@ -40,16 +40,19 @@ class ApiConfig {
   }) async {
     final dio = getDioClient(token: token);
 
+    print('Posting to: ${getUrl(endpoint)}'); // Log URL
+    print('Data: $data'); // Log data yang dikirimkan
+
     try {
       final response = await dio.post(
         endpoint,
         data: data,
         queryParameters: queryParameters,
       );
-
+      print('Response: ${response.data}'); // Log response
       return response;
     } on DioException catch (e) {
-      // Log the error and rethrow
+      // Log error lebih detail
       print('Error posting data: ${e.message}');
       rethrow;
     }
@@ -112,3 +115,29 @@ class ApiConfig {
     return result;
   }
 }
+
+
+
+// New function to handle POST requests
+  // static Future<Response> postData({
+  //   required String endpoint,
+  //   required Map<String, dynamic> data,
+  //   String? token,
+  //   Map<String, dynamic>? queryParameters,
+  // }) async {
+  //   final dio = getDioClient(token: token);
+
+  //   try {
+  //     final response = await dio.post(
+  //       endpoint,
+  //       data: data,
+  //       queryParameters: queryParameters,
+  //     );
+
+  //     return response;
+  //   } on DioException catch (e) {
+  //     // Log the error and rethrow
+  //     print('Error posting data: ${e.message}');
+  //     rethrow;
+  //   }
+  // }

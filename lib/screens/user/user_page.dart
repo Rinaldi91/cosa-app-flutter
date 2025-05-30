@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class UserPage extends StatefulWidget {
   const UserPage({super.key});
@@ -11,11 +12,13 @@ class UserPage extends StatefulWidget {
 class _UserPageState extends State<UserPage> {
   String _username = 'Guest'; // Default value jika data tidak ditemukan
   String _email = 'guest@example.com'; // Default email
+  String _appVersion = ''; // Variabel untuk menyimpan versi aplikasi
 
   @override
   void initState() {
     super.initState();
     _loadUserData(); // Memuat data pengguna saat halaman dimuat
+    _loadAppInfo(); // Memuat informasi aplikasi
   }
 
   Future<void> _loadUserData() async {
@@ -29,6 +32,14 @@ class _UserPageState extends State<UserPage> {
     setState(() {
       _username = storedName ?? 'Guest';
       _email = storedEmail ?? 'guest@example.com'; // Default jika email null
+    });
+  }
+
+  // Fungsi untuk mendapatkan informasi versi aplikasi
+  Future<void> _loadAppInfo() async {
+    final PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _appVersion = '${packageInfo.version} (${packageInfo.buildNumber})';
     });
   }
 
@@ -99,7 +110,8 @@ class _UserPageState extends State<UserPage> {
                 style: TextStyle(color: Colors.white), // Teks putih
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red, // Background merah
+                backgroundColor:
+                    const Color.fromARGB(255, 179, 4, 4), // Background merah
                 foregroundColor: Colors.white, // Warna teks dan ikon putih
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -114,76 +126,232 @@ class _UserPageState extends State<UserPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // appBar: AppBar(
+      //   title: const Text('User Profile'),
+      //   titleTextStyle: const TextStyle(
+      //       color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+      //   centerTitle: true,
+      //   backgroundColor: Colors.blueAccent,
+      // ),
       appBar: AppBar(
-        title: const Text('User Profile'),
-        titleTextStyle: const TextStyle(
-            color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-        centerTitle: true,
-        backgroundColor: Colors.blueAccent,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Foto Profil
-            const CircleAvatar(
-              radius: 50,
-              backgroundColor: Colors.transparent,
-              backgroundImage: AssetImage(
-                  'assets/images/profile.png'), // Ganti dengan path gambar profil
-            ),
-            const SizedBox(height: 10),
-            // Nama User
+        title: Row(
+          children: const [
+            Icon(Icons.person), // Icon for fan device
+            SizedBox(width: 8), // Spacing between icon and text
             Text(
-              _username, // Dinamis berdasarkan data dari SharedPreferences
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 5),
-            // Email User
-            Text(
-              _email, // Dinamis berdasarkan data dari SharedPreferences
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 20),
-            // Card dengan daftar menu
-            Card(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-              elevation: 4,
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.person, color: Colors.blue),
-                    title: const Text('Edit Profile'),
-                    trailing: const Icon(Icons.arrow_forward_ios),
-                    onTap: () {
-                      // Tambahkan navigasi ke halaman edit profil
-                    },
-                  ),
-                  const Divider(),
-                  ListTile(
-                    leading: const Icon(Icons.settings, color: Colors.blue),
-                    title: const Text('Settings'),
-                    trailing: const Icon(Icons.arrow_forward_ios),
-                    onTap: () {
-                      // Tambahkan navigasi ke halaman pengaturan
-                    },
-                  ),
-                  const Divider(),
-                  ListTile(
-                    leading: const Icon(Icons.logout, color: Colors.red),
-                    title: const Text('Logout'),
-                    onTap: () {
-                      _showLogoutDialog(context);
-                    },
-                  ),
-                ],
+              'User Profile',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
               ),
             ),
           ],
         ),
+        backgroundColor: const Color.fromARGB(255, 179, 4, 4),
+        foregroundColor: Colors.white,
+        elevation: 2,
+      ),
+      body: SingleChildScrollView(
+        // Tambahkan SingleChildScrollView di sini
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Foto Profil
+              const CircleAvatar(
+                radius: 50,
+                backgroundColor: Colors.transparent,
+                backgroundImage: AssetImage('assets/images/profile.png'),
+              ),
+              const SizedBox(height: 10),
+              // Nama User
+              Text(
+                _username,
+                style:
+                    const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 5),
+              // Email User
+              Text(
+                _email,
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+              const SizedBox(height: 20),
+              // Card dengan daftar menu
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.3),
+                      spreadRadius: 1,
+                      blurRadius: 5,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.person, color: Colors.blue),
+                      title: const Text('Edit Profile'),
+                      trailing: const Icon(Icons.arrow_forward_ios),
+                      onTap: () {
+                        // Tambahkan navigasi ke halaman edit profil
+                      },
+                    ),
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.settings, color: Colors.blue),
+                      title: const Text('Settings'),
+                      trailing: const Icon(Icons.arrow_forward_ios),
+                      onTap: () {
+                        // Tambahkan navigasi ke halaman pengaturan
+                      },
+                    ),
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.logout,
+                          color: Color.fromARGB(255, 179, 4, 4)),
+                      title: const Text('Logout'),
+                      onTap: () {
+                        _showLogoutDialog(context);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              // SizedBox dengan height tertentu sebagai pengganti Spacer
+              SizedBox(height: MediaQuery.of(context).size.height * 0.15),
+              // Tampilan versi aplikasi
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: Column(
+                  children: [
+                    const Text(
+                      'App Version',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    Text(
+                      _appVersion,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
+
+  // @override
+  // Widget build(BuildContext context) {
+  //   return Scaffold(
+  //     appBar: AppBar(
+  //       title: const Text('User Profile'),
+  //       titleTextStyle: const TextStyle(
+  //           color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+  //       centerTitle: true,
+  //       backgroundColor: Colors.blueAccent,
+  //     ),
+  //     body: Padding(
+  //       padding: const EdgeInsets.all(16.0),
+  //       child: Column(
+  //         crossAxisAlignment: CrossAxisAlignment.center,
+  //         children: [
+  //           // Foto Profil
+  //           const CircleAvatar(
+  //             radius: 50,
+  //             backgroundColor: Colors.transparent,
+  //             backgroundImage: AssetImage(
+  //                 'assets/images/profile.png'), // Ganti dengan path gambar profil
+  //           ),
+  //           const SizedBox(height: 10),
+  //           // Nama User
+  //           Text(
+  //             _username, // Dinamis berdasarkan data dari SharedPreferences
+  //             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+  //           ),
+  //           const SizedBox(height: 5),
+  //           // Email User
+  //           Text(
+  //             _email, // Dinamis berdasarkan data dari SharedPreferences
+  //             style: const TextStyle(fontSize: 16, color: Colors.grey),
+  //           ),
+  //           const SizedBox(height: 20),
+  //           // Card dengan daftar menu
+  //           Card(
+  //             shape: RoundedRectangleBorder(
+  //                 borderRadius: BorderRadius.circular(10)),
+  //             elevation: 4,
+  //             child: Column(
+  //               children: [
+  //                 ListTile(
+  //                   leading: const Icon(Icons.person, color: Colors.blue),
+  //                   title: const Text('Edit Profile'),
+  //                   trailing: const Icon(Icons.arrow_forward_ios),
+  //                   onTap: () {
+  //                     // Tambahkan navigasi ke halaman edit profil
+  //                   },
+  //                 ),
+  //                 const Divider(),
+  //                 ListTile(
+  //                   leading: const Icon(Icons.settings, color: Colors.blue),
+  //                   title: const Text('Settings'),
+  //                   trailing: const Icon(Icons.arrow_forward_ios),
+  //                   onTap: () {
+  //                     // Tambahkan navigasi ke halaman pengaturan
+  //                   },
+  //                 ),
+  //                 const Divider(),
+  //                 ListTile(
+  //                   leading: const Icon(Icons.logout, color: Colors.red),
+  //                   title: const Text('Logout'),
+  //                   onTap: () {
+  //                     _showLogoutDialog(context);
+  //                   },
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //           // Spacer untuk mendorong elemen versi ke bawah
+  //           const Spacer(),
+  //           // Tampilan versi aplikasi
+  //           Padding(
+  //             padding: const EdgeInsets.only(bottom: 16.0),
+  //             child: Column(
+  //               children: [
+  //                 const Text(
+  //                   'App Version',
+  //                   style: TextStyle(
+  //                     fontSize: 14,
+  //                     color: Colors.grey,
+  //                   ),
+  //                 ),
+  //                 Text(
+  //                   _appVersion,
+  //                   style: const TextStyle(
+  //                     fontSize: 14,
+  //                     fontWeight: FontWeight.bold,
+  //                     color: Colors.grey,
+  //                   ),
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 }

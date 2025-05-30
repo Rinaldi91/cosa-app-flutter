@@ -89,7 +89,7 @@ class ScanButton extends StatelessWidget {
           ),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color.fromARGB(255, 255, 0, 0),
+          backgroundColor: const Color.fromARGB(255, 179, 4, 4),
           padding: const EdgeInsets.symmetric(vertical: 15),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),

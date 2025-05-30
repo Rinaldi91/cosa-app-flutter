@@ -1,4 +1,5 @@
 import 'package:cosaapp/config/api_config.dart';
+import 'package:cosaapp/screens/dashboard/widgets/fast_button.dart';
 import 'package:cosaapp/screens/result/result_page.dart';
 import 'package:cosaapp/screens/result/widgets/barcode_scanner_overlay.dart';
 import 'package:cosaapp/screens/user/user_page.dart';
@@ -24,6 +25,8 @@ class _DashboardPageState extends State<DashboardPage> {
   String? _selectedPatientId;
   int _selectedIndex = 0;
   String _username = "";
+  String _comment = "";
+  final TextEditingController _commentController = TextEditingController();
   BluetoothDevice? _connectedDevice;
   final List<ScanResult> _scanResults = [];
   List<GlucoseReading> glucoseReadings = [];
@@ -115,12 +118,15 @@ class _DashboardPageState extends State<DashboardPage> {
           ? _connectedDevice?.name ?? 'Unknown Device'
           : 'No Device';
 
+      // Tambahkan comment ke request data
       Map<String, dynamic> requestData = {
         "date_time": formattedDateTime,
         "glucos_value": int.parse(parts[0]),
         "unit": "mg/dL",
         "patient_id": _selectedPatientId,
         "device_name": deviceName,
+        "comment":
+            _comment.isNotEmpty ? _comment : null, // Tambah field comment
       };
 
       print("Request Data: $requestData");
@@ -137,27 +143,229 @@ class _DashboardPageState extends State<DashboardPage> {
       if ((response.statusCode == 200 || response.statusCode == 201) &&
           response.data["status"] == "success") {
         setState(() {
-          _isSaved = true; // Sembunyikan tombol setelah sukses
+          _isSaved = true;
+          // Reset comment setelah berhasil save
+          _comment = "";
+          _commentController.clear();
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Glucose results saved successfully!")),
-        );
-      } else {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(
-                  "Failed to save glucose results. Status Code: ${response.statusCode}")),
+            elevation: 6.0,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(10),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            content: Row(
+              children: [
+                const Icon(
+                  Icons.check_circle,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Success',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const Text(
+                        'Glucose results saved successfully!',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green.shade800,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'OK',
+              textColor: Colors.white,
+              onPressed: () {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              },
+            ),
+          ),
+        );
+      } else {
+        // Handle error response (kode existing)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            elevation: 6.0,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(10),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            content: Row(
+              children: [
+                const Icon(
+                  Icons.warning,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Warning',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        "Failed to save glucose results. Status Code: ${response.statusCode}",
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.orange.shade800,
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     } catch (e) {
       print("Error saving glucose result: $e");
+      // Handle catch error (kode existing)
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(
-                "An error occurred while saving the glucose results. Please try again later.")),
+          elevation: 6.0,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          content: Row(
+            children: [
+              const Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.white,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Failed to Save Data.',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const Text(
+                      'An error occurred while saving the glucose results. Please try again later.',
+                      style: TextStyle(fontSize: 14),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red.shade800,
+          duration: const Duration(seconds: 4),
+        ),
       );
     }
+  }
+
+  Widget _buildSaveSection() {
+    return Column(
+      children: [
+        // Tampilkan comment jika ada
+        if (_comment.isNotEmpty) ...[
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(12),
+            margin: EdgeInsets.only(bottom: 10),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.comment, size: 16, color: Colors.blue.shade700),
+                    SizedBox(width: 8),
+                    Text(
+                      'Comment:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 4),
+                Text(
+                  _comment,
+                  style: TextStyle(color: Colors.blue.shade800),
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        // Tombol untuk add comment dan save
+        if (!_isSaved && !_isValue) ...[
+          Row(
+            children: [
+              // Tombol Add Comment
+              Expanded(
+                flex: 1,
+                child: OutlinedButton.icon(
+                  icon: Icon(Icons.comment_outlined),
+                  label: Text('Comment'),
+                  onPressed: _showCommentDialog,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Color.fromARGB(255, 179, 4, 4),
+                    side: BorderSide(color: Color.fromARGB(255, 179, 4, 4)),
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+              SizedBox(width: 8),
+              // Tombol Save Result
+              Expanded(
+                flex: 2,
+                child: ElevatedButton.icon(
+                  icon: Icon(Icons.save),
+                  label: Text('Save Result'),
+                  onPressed: _saveGlucoseResult,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
   }
 
   Future<void> _saveUserData(Map<String, dynamic> userData) async {
@@ -251,8 +459,56 @@ class _DashboardPageState extends State<DashboardPage> {
       String? token = prefs.getString('token');
 
       if (token == null || token.isEmpty) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Please login again.")),
+          SnackBar(
+            elevation: 6.0,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(10),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            content: Row(
+              children: [
+                const Icon(
+                  Icons.login,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Session Ended.',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const Text(
+                        'Please login again to continue.',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.blue.shade800,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Login',
+              textColor: Colors.white,
+              onPressed: () {
+                // Navigasi ke halaman login
+                // Misalnya: Navigator.of(context).pushReplacementNamed('/login');
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              },
+            ),
+          ),
         );
         return;
       }
@@ -293,6 +549,8 @@ class _DashboardPageState extends State<DashboardPage> {
 
       await _connectionStateSubscription?.cancel();
       await device.connect();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('last_connected_device_id', device.id.id);
 
       if (!mounted) return;
 
@@ -375,12 +633,41 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-// Helper method to get the authentication token
+  Future<void> connectToSavedDevice() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedDeviceId = prefs.getString('last_connected_device_id');
+
+      if (savedDeviceId == null) {
+        debugPrint("No devices saved.");
+        BluetoothUtils.showConnectionErrorSnackBar(
+            context, "There are no saved devices yet.");
+        return;
+      }
+
+      final device = BluetoothDevice(
+        remoteId: DeviceIdentifier(savedDeviceId),
+      );
+
+      debugPrint("Trying fast connection to: $savedDeviceId");
+
+      await _connectToDevice(device, true); // true = diasumsikan alat contour
+    } catch (e) {
+      debugPrint("Fast connect failed: $e");
+      if (mounted) {
+        BluetoothUtils.showConnectionErrorSnackBar(
+            context, "Fast connect failed: $e");
+      }
+    }
+  }
+
+  // Helper method to get the authentication token
   Future<String?> _getAuthToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('auth_token');
   }
 
+  //Scan barcode pasien
   Future<void> _scanBarcode() async {
     try {
       await Future.delayed(const Duration(milliseconds: 100));
@@ -408,16 +695,62 @@ class _DashboardPageState extends State<DashboardPage> {
     } catch (e) {
       if (mounted) {
         debugPrint('Error scanning barcode: $e');
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error scanning barcode. Please try again.'),
-            backgroundColor: Colors.red,
+          SnackBar(
+            elevation: 6.0,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(10),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            content: Row(
+              children: [
+                const Icon(
+                  Icons.qr_code_scanner,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Scan Failed.',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const Text(
+                        'Error reading barcode. Please try again.',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red.shade800,
+            duration: const Duration(seconds: 3),
+            action: SnackBarAction(
+              label: 'Try again.',
+              textColor: Colors.white,
+              onPressed: () {
+                // Di sini Anda bisa memanggil fungsi untuk mencoba pemindaian ulang
+                // Misalnya: startBarcodeScanner();
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              },
+            ),
           ),
         );
       }
     }
   }
 
+  //Search data pasien
   Future<void> _searchPatient(String query) async {
     if (query.isEmpty) {
       setState(() {
@@ -462,10 +795,70 @@ class _DashboardPageState extends State<DashboardPage> {
       }
     } catch (e) {
       print('Error fetching patient: $e');
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error fetching patient: ${e.toString()}'),
-          backgroundColor: Colors.red,
+          elevation: 6.0,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          content: Row(
+            children: [
+              const Icon(
+                Icons.person_off,
+                color: Colors.white,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Failed to Load Patient Data.',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      e.toString(),
+                      style: const TextStyle(fontSize: 14),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red.shade800,
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: 'Details',
+            textColor: Colors.white,
+            onPressed: () {
+              // Tampilkan dialog dengan error lengkap
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Error Details'),
+                  content: SingleChildScrollView(
+                    child: Text(e.toString()),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       );
     } finally {
@@ -644,252 +1037,401 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  // Fungsi untuk menampilkan dialog comment
+  Future<void> _showCommentDialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.comment, color: Colors.blue),
+              SizedBox(width: 8),
+              Text('Add Comment'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text(
+                  'Add a comment for this glucose reading:',
+                  style: TextStyle(fontSize: 16),
+                ),
+                SizedBox(height: 16),
+                TextField(
+                  controller: _commentController,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    hintText: 'Enter your comment here...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(
+                        color: Color.fromARGB(255, 179, 4, 4),
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+              onPressed: () {
+                _commentController.clear();
+                Navigator.of(context).pop();
+              },
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color.fromARGB(255, 179, 4, 4),
+                foregroundColor: Colors.white,
+              ),
+              child: Text('Save Comment'),
+              onPressed: () {
+                setState(() {
+                  _comment = _commentController.text.trim();
+                });
+                Navigator.of(context).pop();
+
+                // Show confirmation snackbar
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Comment added successfully!'),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildDashboardContent() {
     bool isConnected = _connectedDevice != null && _isContourDevice;
     String deviceName = isConnected ? _connectedDevice!.name : '';
     final mediaQuery = MediaQuery.of(context);
     final isLandscape = mediaQuery.orientation == Orientation.landscape;
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            DashboardHeader(username: _username),
-            const SizedBox(height: 5),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10.0),
-              child: Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ConnectionStatus(
-                        isConnected: isConnected,
-                        deviceName: deviceName,
-                      ),
-                      const SizedBox(height: 3),
-                      if (isConnected)
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            icon: const Icon(Icons.bluetooth_connected,
-                                color: Colors.white, size: 24),
-                            style: ElevatedButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              backgroundColor: Colors.green,
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 15.0),
-                            ),
-                            onPressed: () {},
-                            label: Flexible(
-                              child: Text(
-                                deviceName,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                softWrap: false,
-                              ),
-                            ),
-                          ),
-                        )
-                      else
-                        ScanButton(
-                          isConnected: isConnected,
-                          onScan: () => BluetoothUtils.scanAndShowDialog(
-                            context,
-                            onDeviceSelected: _connectToDevice,
-                          ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          children: const [
+            Icon(Icons.home), // Icon for fan device
+            SizedBox(width: 8), // Spacing between icon and text
+            Text(
+              'Fans Cosa',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color.fromARGB(255, 179, 4, 4),
+        foregroundColor: Colors.white,
+        elevation: 2,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () {
+              // Navigasi ke halaman riwayat pengukuran
+              // Navigator.push(context, MaterialPageRoute(builder: (context) => HistoryPage()));
+            },
+            tooltip: 'History',
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              DashboardHeader(username: _username),
+              Divider(),
+              const SizedBox(height: 5),
+              Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.3),
+                          spreadRadius: 1,
+                          blurRadius: 5,
+                          offset: Offset(0, 2),
                         ),
-                      const SizedBox(height: 10),
-                      Divider(),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      ],
+                      color: Colors.white,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(10.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Icon(Icons.person, color: Colors.black),
-                              SizedBox(width: 5),
-                              Text(
-                                'Patient',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
+                          ConnectionStatus(
+                            isConnected: isConnected,
+                            deviceName: deviceName,
                           ),
-                          // ElevatedButton(
-                          //   onPressed: _showAddPatientDialog,
-                          //   child: Text('Add Patient'),
-                          // ),
-                        ],
-                      ),
-                      const SizedBox(height: 7),
-                      TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          labelText: 'Search',
-                          prefixIcon: const Icon(Icons.search),
-                          suffixIcon: _searchController.text.isNotEmpty
-                              ? Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.clear),
-                                      onPressed: () {
-                                        setState(() {
-                                          _searchController.clear();
-                                          _filterPatients("");
-                                        });
-                                      },
-                                      tooltip: 'Clear Search',
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.qr_code_scanner),
-                                      onPressed: _scanBarcode,
-                                      tooltip: 'Scan Barcode',
-                                    ),
-                                  ],
-                                )
-                              : IconButton(
-                                  icon: const Icon(Icons.qr_code_scanner),
-                                  onPressed: _scanBarcode,
-                                  tooltip: 'Scan Barcode',
+                          const SizedBox(height: 3),
+                          if (isConnected)
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                icon: const Icon(Icons.bluetooth_connected,
+                                    color: Colors.white, size: 24),
+                                style: ElevatedButton.styleFrom(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  backgroundColor: Colors.green,
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 15.0),
                                 ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                                color: Color.fromARGB(255, 0, 122, 255)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: Color.fromARGB(255, 0, 122, 255),
-                              width: 2,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      _isLoading
-                          ? Center(child: CircularProgressIndicator())
-                          : _filteredPatients.isEmpty
-                              ? const Text("")
-                              : ListView.builder(
-                                  shrinkWrap: true,
-                                  physics: NeverScrollableScrollPhysics(),
-                                  itemCount: _filteredPatients.length,
-                                  itemBuilder: (context, index) {
-                                    final patient = _filteredPatients[index];
-                                    return Card(
-                                      elevation: 1,
-                                      margin: const EdgeInsets.symmetric(
-                                          vertical: 5),
-                                      child: ListTile(
-                                        leading: CircleAvatar(
-                                          child: Text(
-                                            patient.name[0],
-                                            style: TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                        ),
-                                        title: Text(patient.name),
-                                        subtitle: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                                "Code Patient: ${patient.patientCode}"),
-                                            Text("Barcode: ${patient.barcode}"),
-                                            Text("Address: ${patient.address}"),
-                                          ],
-                                        ),
-                                        onTap: () => _selectPatient(
-                                            patient), // Pilih pasien
-                                      ),
-                                    );
-                                  },
-                                ),
-                      const SizedBox(height: 10),
-                      Divider(),
-                      const SizedBox(height: 10),
-                      Center(
-                        child: Column(
-                          children: [
-                            const Text(
-                              'Glucose Level',
-                              style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.w500),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  _glucoseResult == "No Data"
-                                      ? Icons.hourglass_empty
-                                      : Icons.water_drop,
-                                  color: _getGlucoseColor(),
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Flexible(
+                                onPressed: () {},
+                                label: Flexible(
                                   child: Text(
-                                    _glucoseResult,
-                                    style: TextStyle(
-                                      fontSize: isLandscape ? 16 : 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: _getGlucoseColor(),
+                                    deviceName,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                     softWrap: false,
                                   ),
                                 ),
+                              ),
+                            )
+                          else
+                            ScanButton(
+                              isConnected: isConnected,
+                              onScan: () => BluetoothUtils.scanAndShowDialog(
+                                context,
+                                onDeviceSelected: _connectToDevice,
+                              ),
+                            ),
+                          // const SizedBox(height: 8),
+                          // FastConnectionButton(
+                          //   text: 'Fast Connection',
+                          //   iconData: Icons.flash_on,
+                          //   backgroundColor: Colors.orange,
+                          //   foregroundColor: Colors.white,
+                          //   borderRadius: 12,
+                          //   verticalPadding: 15,
+                          //   horizontalPadding: 20,
+                          //   onPressed: connectToSavedDevice,
+                          // ),
+                          const SizedBox(height: 10),
+                          Divider(),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.person, color: Colors.black),
+                                  SizedBox(width: 5),
+                                  Text(
+                                    'Patient',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              // ElevatedButton(
+                              //   onPressed: _showAddPatientDialog,
+                              //   child: Text('Add Patient'),
+                              // ),
+                            ],
+                          ),
+                          const SizedBox(height: 7),
+                          TextField(
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              labelText: 'Search',
+                              prefixIcon: const Icon(Icons.search),
+                              suffixIcon: _searchController.text.isNotEmpty
+                                  ? Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.clear),
+                                          onPressed: () {
+                                            setState(() {
+                                              _searchController.clear();
+                                              _filterPatients("");
+                                            });
+                                          },
+                                          tooltip: 'Clear Search',
+                                        ),
+                                        IconButton(
+                                          icon:
+                                              const Icon(Icons.qr_code_scanner),
+                                          onPressed: _scanBarcode,
+                                          tooltip: 'Scan Barcode',
+                                        ),
+                                      ],
+                                    )
+                                  : IconButton(
+                                      icon: const Icon(Icons.qr_code_scanner),
+                                      onPressed: _scanBarcode,
+                                      tooltip: 'Scan Barcode',
+                                    ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                    color: Color.fromARGB(255, 179, 4, 4)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Color.fromARGB(255, 179, 4, 4),
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          _isLoading
+                              ? Center(child: CircularProgressIndicator())
+                              : _filteredPatients.isEmpty
+                                  ? const Text("")
+                                  : ListView.builder(
+                                      shrinkWrap: true,
+                                      physics: NeverScrollableScrollPhysics(),
+                                      itemCount: _filteredPatients.length,
+                                      itemBuilder: (context, index) {
+                                        final patient =
+                                            _filteredPatients[index];
+                                        return Container(
+                                          margin: const EdgeInsets.symmetric(
+                                              vertical: 5),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.grey
+                                                    .withOpacity(0.2),
+                                                spreadRadius: 1,
+                                                blurRadius: 2,
+                                                offset: Offset(0, 1),
+                                              ),
+                                            ],
+                                          ),
+                                          child: ListTile(
+                                            leading: CircleAvatar(
+                                              child: Text(
+                                                patient.name[0],
+                                                style: TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                            title: Text(patient.name),
+                                            subtitle: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                    "Code Patient: ${patient.patientCode}"),
+                                                Text(
+                                                    "Barcode: ${patient.barcode}"),
+                                                Text(
+                                                    "Address: ${patient.address}"),
+                                              ],
+                                            ),
+                                            onTap: () =>
+                                                _selectPatient(patient),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                          const SizedBox(height: 10),
+                          Divider(),
+                          const SizedBox(height: 10),
+                          Center(
+                            child: Column(
+                              children: [
+                                const Text(
+                                  'Glucose Level',
+                                  style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w500),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      _glucoseResult == "No Data"
+                                          ? Icons.hourglass_empty
+                                          : Icons.water_drop,
+                                      color: _getGlucoseColor(),
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      child: Text(
+                                        _glucoseResult,
+                                        style: TextStyle(
+                                          fontSize: isLandscape ? 16 : 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: _getGlucoseColor(),
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                        softWrap: false,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (_latestReading != null) ...[
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Date & Time: ${_latestReading!.formattedTimestamp}',
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                ],
+                                const SizedBox(height: 10),
+                                if (!_isSaved && !_isValue)
+                                  ElevatedButton(
+                                    onPressed: _saveGlucoseResult,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.blueAccent,
+                                      alignment: Alignment.center,
+                                    ),
+                                    child: Text(
+                                      "Save Result",
+                                      style:
+                                          const TextStyle(color: Colors.white),
+                                    ),
+                                  ),
                               ],
                             ),
-                            if (_latestReading != null) ...[
-                              const SizedBox(height: 6),
-                              Text(
-                                'Date & Time: ${_latestReading!.formattedTimestamp}',
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                            ],
-                            const SizedBox(height: 10),
-                            if (!_isSaved && !_isValue)
-                              ElevatedButton(
-                                onPressed: _saveGlucoseResult,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blueAccent,
-                                  alignment: Alignment.center,
-                                ),
-                                child: Text(
-                                  "Save Result",
-                                  style: const TextStyle(color: Colors.white),
-                                ),
-                              ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(height: isLandscape ? 5.0 : 0),
-          ],
+                    ),
+                  )),
+              SizedBox(height: isLandscape ? 5.0 : 0),
+            ],
+          ),
         ),
       ),
     );
@@ -916,7 +1458,7 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blue,
+        selectedItemColor: const Color.fromARGB(255, 179, 4, 4),
         onTap: _onItemTapped,
       ),
     );
@@ -945,65 +1487,3 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 }
-
-
-// Future<void> _connectToDevice(
-  //     BluetoothDevice device, bool isContourDevice) async {
-  //   try {
-  //     if (_connectedDevice != null) {
-  //       await _connectedDevice!.disconnect();
-  //     }
-
-  //     await _connectionStateSubscription?.cancel();
-  //     await device.connect();
-
-  //     if (!mounted) return;
-
-  //     _connectionStateSubscription = device.connectionState.listen((state) {
-  //       if (state == BluetoothConnectionState.disconnected && mounted) {
-  //         setState(() {
-  //           _connectedDevice = null;
-  //           _isContourDevice = false;
-  //           _glucoseResult = "No Data";
-  //           _latestReading = null;
-  //         });
-  //         BluetoothUtils.showDisconnectionSnackBar(context);
-  //       }
-  //     });
-
-  //     setState(() {
-  //       _connectedDevice = device;
-  //       _isContourDevice = isContourDevice;
-  //     });
-
-  //     if (isContourDevice) {
-  //       try {
-  //         await BluetoothUtils.setupGlucoseNotification(
-  //           device,
-  //           (GlucoseReading reading) {
-  //             debugPrint('Received new reading: ${reading.toString()}');
-  //             if (mounted) {
-  //               setState(() {
-  //                 _latestReading = reading;
-  //                 _glucoseResult = "${reading.glucoseValue} ${reading.unit}";
-  //                 debugPrint('Updated UI with glucose result: $_glucoseResult');
-  //               });
-  //             }
-  //           },
-  //         );
-  //       } catch (e) {
-  //         debugPrint('Error in glucose notification setup: $e');
-  //         if (mounted) {
-  //           setState(() {
-  //             _glucoseResult = "Error: Cannot read glucose data";
-  //           });
-  //         }
-  //       }
-  //     }
-
-  //     BluetoothUtils.showConnectionSuccessSnackBar(context, device.name);
-  //   } catch (e) {
-  //     if (!mounted) return;
-  //     BluetoothUtils.showConnectionErrorSnackBar(context, e.toString());
-  //   }
-  // }

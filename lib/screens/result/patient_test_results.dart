@@ -84,20 +84,45 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // appBar: AppBar(
+      //   title: Text('${widget.patient.name} - Glucose Test Results'),
+      //   titleTextStyle: const TextStyle(
+      //       color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+      //   centerTitle: true,
+      //   backgroundColor: Colors.blueAccent,
+      // ),
       appBar: AppBar(
-        title: Text('${widget.patient.name} - Glucose Test Results'),
-        titleTextStyle: const TextStyle(
-            color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-        centerTitle: true,
-        backgroundColor: Colors.blueAccent,
+        title: Row(
+          children: const [
+            Icon(Icons.list_alt), // Icon for fan device
+            SizedBox(width: 8), // Spacing between icon and text
+            Text(
+              'Glucose Test Results',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color.fromARGB(255, 179, 4, 4),
+        foregroundColor: Colors.white,
+        elevation: 2,
       ),
       body: Column(
         children: [
-          Card(
+          Container(
             margin: const EdgeInsets.all(10),
-            elevation: 4,
-            shape: RoundedRectangleBorder(
+            decoration: BoxDecoration(
+              color: Colors.white,
               borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.3),
+                  spreadRadius: 1,
+                  blurRadius: 5,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
             child: Padding(
               padding: const EdgeInsets.all(15),
@@ -151,15 +176,26 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                     child: CircularProgressIndicator(),
                   )
                 : _testResults.isEmpty
-                    ? const Center(
-                        child: Card(
-                          margin: EdgeInsets.all(20),
-                          child: Padding(
-                            padding: EdgeInsets.all(20),
-                            child: Text(
-                              'No test results found',
-                              style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold),
+                    ? Center(
+                        child: SingleChildScrollView(
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 100),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(
+                                  Icons.search_off,
+                                  size: 80,
+                                  color: Colors.grey,
+                                ),
+                                SizedBox(height: 16),
+                                Text(
+                                  'No test results found',
+                                  style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -225,12 +261,20 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                           String validationText =
                               isValidated ? 'Validated' : 'Not Validated';
 
-                          return Card(
+                          return Container(
                             margin: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 5),
-                            elevation: 2,
-                            shape: RoundedRectangleBorder(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.2),
+                                  spreadRadius: 1,
+                                  blurRadius: 3,
+                                  offset: Offset(0, 1),
+                                ),
+                              ],
                             ),
                             child: Padding(
                               padding: const EdgeInsets.all(15),
