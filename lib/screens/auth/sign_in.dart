@@ -3,6 +3,7 @@ import 'package:cosaapp/config/api_config.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class SignIn extends StatelessWidget {
   const SignIn({super.key});
@@ -130,9 +131,17 @@ class __FormContentState extends State<_FormContent> {
       );
 
       if (response.statusCode == 200) {
-        await _handleSuccessfulLogin(response.data);
+        // Pastikan data dalam bentuk Map
+        final data =
+            response.data is String ? jsonDecode(response.data) : response.data;
+
+        if (data['status'] == 'success') {
+          await _handleSuccessfulLogin(data, response.headers);
+        } else {
+          _showError(data['message'] ?? 'Login failed');
+        }
       } else {
-        _showError(response.data['message'] ?? 'Login failed');
+        _showError('Login failed with status: ${response.statusCode}');
       }
     } on DioException catch (e) {
       // Penanganan error tetap sama
@@ -186,14 +195,40 @@ class __FormContentState extends State<_FormContent> {
     }
   }
 
-  Future<void> _handleSuccessfulLogin(Map<String, dynamic> data) async {
+  String _extractTokenFromSetCookie(String setCookie) {
+    final parts = setCookie.split(';');
+    for (var part in parts) {
+      if (part.trim().startsWith('token=')) {
+        return part.trim().substring(6); // Ambil setelah 'token='
+      }
+    }
+    return '';
+  }
+
+  Future<void> _handleSuccessfulLogin(
+      Map<String, dynamic> data, Headers headers) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = data['data']['token'];
+
+      // Ambil token dari header 'set-cookie'
+      final setCookie = headers.map['set-cookie']?.first;
+      if (setCookie == null) {
+        _showError('Token not found in response headers.');
+        return;
+      }
+
+      final token = _extractTokenFromSetCookie(setCookie);
+      if (token.isEmpty) {
+        _showError('Failed to extract token from set-cookie.');
+        return;
+      }
+
+      // Simpan data ke SharedPreferences
       await prefs.setString('token', token);
       await prefs.setString('name', data['data']['name']);
       await prefs.setString('email', data['data']['email']);
 
+      // Simpan email/password jika remember me dicentang
       if (_rememberMe) {
         await prefs.setString('remembered_email', _emailController.text.trim());
         await prefs.setString(
@@ -205,13 +240,13 @@ class __FormContentState extends State<_FormContent> {
         await prefs.setBool('remember_me', false);
       }
 
-      print("Saved name: ${data['data']['name']}"); // Debugging
-      // Opsional: Inisialisasi dio dengan token untuk digunakan setelah navigasi
-      // _dio = ApiConfig.getDioClient(token: token);
+      print("Saved name: ${data['data']['name']}");
+      print("Saved token: $token");
+
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/dashboard');
     } catch (e) {
-      _showError('Failed to save login information');
+      _showError('Failed to save login information: $e');
     }
   }
 

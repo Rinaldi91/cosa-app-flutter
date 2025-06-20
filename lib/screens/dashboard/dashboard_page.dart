@@ -37,6 +37,14 @@ class _DashboardPageState extends State<DashboardPage> {
   GlucoseReading? _latestReading;
   final TextEditingController _searchController = TextEditingController();
 
+  bool _canSaveResult() {
+    return _selectedPatientId != null &&
+        _selectedPatientId!.isNotEmpty &&
+        _glucoseResult != "No Data" &&
+        _glucoseResult.isNotEmpty &&
+        !_isSaved; // hanya jika belum disimpan
+  }
+
   final Dio _dio = Dio();
   List<Patient> _patients = [];
   List<Patient> _filteredPatients = [];
@@ -52,6 +60,8 @@ class _DashboardPageState extends State<DashboardPage> {
   final TextEditingController numberPhoneController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   int step = 0;
+
+  TextEditingController searchController = TextEditingController();
 
   get deviceMacAddress => null;
 
@@ -328,7 +338,7 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ],
 
-        // Tombol untuk add comment dan save
+        // Tombol save
         if (!_isSaved && !_isValue) ...[
           Row(
             children: [
@@ -348,19 +358,20 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
               SizedBox(width: 8),
               // Tombol Save Result
-              Expanded(
-                flex: 2,
-                child: ElevatedButton.icon(
-                  icon: Icon(Icons.save),
-                  label: Text('Save Result'),
-                  onPressed: _saveGlucoseResult,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(vertical: 12),
+              if (_canSaveResult())
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton.icon(
+                    icon: Icon(Icons.save),
+                    label: Text('Save Result'),
+                    onPressed: _saveGlucoseResult,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ],
@@ -589,6 +600,10 @@ class _DashboardPageState extends State<DashboardPage> {
       setState(() {
         _connectedDevice = device;
         _isContourDevice = isContourDevice;
+        _selectedPatientId = null;
+        _isSaved = false;
+        _glucoseResult = "No Data";
+        _latestReading = null;
       });
 
       if (isContourDevice) {
@@ -872,6 +887,7 @@ class _DashboardPageState extends State<DashboardPage> {
   void _selectPatient(Patient patient) {
     setState(() {
       _selectedPatientId = patient.id.toString(); // Simpan ID pasien
+      _isSaved = false;
       debugPrint(
           "Selected Patient ID: $_selectedPatientId"); // Tampilkan log untuk verifikasi
       debugPrint(
@@ -1259,38 +1275,93 @@ class _DashboardPageState extends State<DashboardPage> {
                             ],
                           ),
                           const SizedBox(height: 7),
+                          // TextField(
+                          //   controller: _searchController,
+                          //   decoration: InputDecoration(
+                          //     labelText: 'Scan QR Code Patient',
+                          //     prefixIcon: const Icon(Icons.search),
+                          //     suffixIcon: _searchController.text.isNotEmpty
+                          //         ? Row(
+                          //             mainAxisSize: MainAxisSize.min,
+                          //             children: [
+                          //               IconButton(
+                          //                 icon: const Icon(Icons.clear),
+                          //                 onPressed: () {
+                          //                   setState(() {
+                          //                     _searchController.clear();
+                          //                     _filterPatients("");
+                          //                     _isSaved = false;
+                          //                     _glucoseResult =
+                          //                         "No Data"; // Reset nilai hasil glukosa
+                          //                     _latestReading =
+                          //                         null; // Reset waktu jika perlu
+                          //                   });
+                          //                 },
+                          //                 tooltip: 'Clear Search',
+                          //               ),
+                          //               IconButton(
+                          //                 icon:
+                          //                     const Icon(Icons.qr_code_scanner),
+                          //                 onPressed: _scanBarcode,
+                          //                 tooltip: 'Scan Barcode',
+                          //               ),
+                          //             ],
+                          //           )
+                          //         : IconButton(
+                          //             icon: const Icon(Icons.qr_code_scanner),
+                          //             onPressed: _scanBarcode,
+                          //             tooltip: 'Scan Barcode',
+                          //           ),
+                          //     border: OutlineInputBorder(
+                          //       borderRadius: BorderRadius.circular(12),
+                          //       borderSide: const BorderSide(
+                          //           color: Color.fromARGB(255, 179, 4, 4)),
+                          //     ),
+                          //     focusedBorder: OutlineInputBorder(
+                          //       borderRadius: BorderRadius.circular(12),
+                          //       borderSide: const BorderSide(
+                          //         color: Color.fromARGB(255, 179, 4, 4),
+                          //         width: 2,
+                          //       ),
+                          //     ),
+                          //   ),
+                          // ),
+
                           TextField(
                             controller: _searchController,
+                            readOnly:
+                                true, // Tidak bisa diketik manual, tapi bisa di-tap
+                            onTap:
+                                _scanBarcode, // Tap di TextField langsung buka scanner
                             decoration: InputDecoration(
-                              labelText: 'Search',
+                              labelText: 'Scan QR Code Patient',
                               prefixIcon: const Icon(Icons.search),
-                              suffixIcon: _searchController.text.isNotEmpty
-                                  ? Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.clear),
-                                          onPressed: () {
-                                            setState(() {
-                                              _searchController.clear();
-                                              _filterPatients("");
-                                            });
-                                          },
-                                          tooltip: 'Clear Search',
-                                        ),
-                                        IconButton(
-                                          icon:
-                                              const Icon(Icons.qr_code_scanner),
-                                          onPressed: _scanBarcode,
-                                          tooltip: 'Scan Barcode',
-                                        ),
-                                      ],
-                                    )
-                                  : IconButton(
-                                      icon: const Icon(Icons.qr_code_scanner),
-                                      onPressed: _scanBarcode,
-                                      tooltip: 'Scan Barcode',
+                              suffixIcon: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (_searchController.text.isNotEmpty)
+                                    IconButton(
+                                      icon: const Icon(Icons.clear),
+                                      onPressed: () {
+                                        setState(() {
+                                          _searchController.clear();
+                                          _filterPatients(
+                                              ""); // Reset daftar pasien
+                                          _isSaved = false;
+                                          _glucoseResult =
+                                              "No Data"; // Reset hasil glukosa
+                                          _latestReading = null;
+                                        });
+                                      },
+                                      tooltip: 'Clear Search',
                                     ),
+                                  IconButton(
+                                    icon: const Icon(Icons.qr_code_scanner),
+                                    onPressed: _scanBarcode,
+                                    tooltip: 'Scan Barcode',
+                                  ),
+                                ],
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: const BorderSide(
@@ -1305,6 +1376,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               ),
                             ),
                           ),
+
                           const SizedBox(height: 10),
                           _isLoading
                               ? Center(child: CircularProgressIndicator())
@@ -1409,7 +1481,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                   ),
                                 ],
                                 const SizedBox(height: 10),
-                                if (!_isSaved && !_isValue)
+                                if (_canSaveResult())
                                   ElevatedButton(
                                     onPressed: _saveGlucoseResult,
                                     style: ElevatedButton.styleFrom(

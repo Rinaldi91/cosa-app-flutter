@@ -9,7 +9,6 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-
 const String glucoseService = '00001808-0000-1000-8000-00805f9b34fb';
 const String glucoseServiceUuid = "00001808-0000-1000-8000-00805f9b34fb";
 const String glucoseMeasurementUuid = "00002A18-0000-1000-8000-00805f9b34fb";
@@ -26,21 +25,31 @@ class GlucoseReading {
   final String unit;
   final String formattedTimestamp;
   final String mealContext;
+  final String glucoseStatus;
+  final String deviceStatusIndicator;
 
-  GlucoseReading({
-    required this.sequenceNumber,
-    required this.timestamp,
-    required this.glucoseValue,
-    required this.unit,
-    required this.formattedTimestamp,
-    required this.mealContext,
-  });
-
-  get value => null;
+  GlucoseReading(
+      {required this.sequenceNumber,
+      required this.timestamp,
+      required this.glucoseValue,
+      required this.unit,
+      required this.formattedTimestamp,
+      required this.mealContext,
+      required this.glucoseStatus,
+      required this.deviceStatusIndicator});
 
   @override
   String toString() {
-    return 'GlucoseReading(sequenceNumber: $sequenceNumber, timestamp: $timestamp, glucoseValue: $glucoseValue $unit, mealContext: $mealContext)';
+    return 'GlucoseReading{'
+        'sequenceNumber: $sequenceNumber, '
+        'timestamp: $timestamp, '
+        'glucoseValue: $glucoseValue, '
+        'unit: $unit, '
+        'formattedTimestamp: $formattedTimestamp, '
+        'mealContext: $mealContext,'
+        'mealContext: $glucoseStatus,'
+        'deviceStatusIndicator: $deviceStatusIndicator'
+        '}';
   }
 }
 
@@ -85,14 +94,6 @@ class BluetoothUtils {
     }
   }
 
-  // static void showDisconnectionSnackBar(BuildContext context) {
-  //   ScaffoldMessenger.of(context).showSnackBar(
-  //     const SnackBar(
-  //       content: Text('Device disconnected'),
-  //       backgroundColor: Colors.red,
-  //     ),
-  //   );
-  // }
   static void showDisconnectionSnackBar(BuildContext context) {
     // Hapus snackbar yang sedang ditampilkan (jika ada)
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -146,16 +147,6 @@ class BluetoothUtils {
       ),
     );
   }
-
-  // static void showConnectionSuccessSnackBar(
-  //     BuildContext context, String deviceName) {
-  //   ScaffoldMessenger.of(context).showSnackBar(
-  //     SnackBar(
-  //       content: Text('Connected to $deviceName'),
-  //       backgroundColor: Colors.green,
-  //     ),
-  //   );
-  // }
 
   static void showConnectionSuccessSnackBar(
       BuildContext context, String deviceName) {
@@ -211,15 +202,6 @@ class BluetoothUtils {
       ),
     );
   }
-
-  // static void showConnectionErrorSnackBar(BuildContext context, String error) {
-  //   ScaffoldMessenger.of(context).showSnackBar(
-  //     SnackBar(
-  //       content: Text('Connection failed: $error'),
-  //       backgroundColor: Colors.red,
-  //     ),
-  //   );
-  // }
 
   static void showConnectionErrorSnackBar(BuildContext context, String error) {
     // Hapus snackbar yang sedang ditampilkan (jika ada)
@@ -357,27 +339,25 @@ class BluetoothUtils {
     }
   }
 
+  // Fungsi untuk parsing data glukosa
   static GlucoseReading parseGlucoseData(List<int> rawData) {
     try {
-      // Menampilkan data byte mentah untuk debugging
       debugPrint('Raw Data Bytes: $rawData');
+      debugPrint('Raw Data Length: ${rawData.length}');
 
       final buffer = Uint8List.fromList(rawData).buffer;
       final dataView = ByteData.view(buffer);
 
-      // Flags byte menentukan format data yang tersedia
       final flags = dataView.getUint8(0);
       debugPrint('Flags (binary): ${flags.toRadixString(2).padLeft(8, '0')}');
       int offset = 1;
 
-      // Sequence Number (2 bytes, Little Endian)
       final sequenceNumber = dataView.getUint16(offset, Endian.little);
+      debugPrint('Sequence Number: $sequenceNumber');
       offset += 2;
 
-      // Base Time (7 bytes)
       final baseYear = dataView.getUint16(offset, Endian.little);
-      final month =
-          dataView.getUint8(offset + 2) - 1; // Month is 0-based in DateTime
+      final month = dataView.getUint8(offset + 2) - 1;
       final day = dataView.getUint8(offset + 3);
       final hours = dataView.getUint8(offset + 4);
       final minutes = dataView.getUint8(offset + 5);
@@ -385,26 +365,117 @@ class BluetoothUtils {
       debugPrint(
           'Decoded Timestamp from device: {baseYear: $baseYear, month: ${month + 1}, day: $day, hours: $hours, minutes: $minutes, seconds: $seconds}');
       offset += 7;
-      // Parse glucose concentration - nilai glukosa ada pada posisi offset = 12 (byte ke-12)
-      int glucoseValue;
+
+      int glucoseValue = 0;
+      String glucoseStatus;
+      String deviceStatusIndicator = 'Unknown'; // Default status indicator
+
       if ((flags & 0x01) != 0) {
-        // Berdasarkan kode Next.js dan data debug, nilai glukosa ada di byte ke-12
-        glucoseValue = dataView
-            .getUint8(offset + 2); // Offset +2 untuk menuju ke byte ke-12
-        offset += 3; // Sesuaikan offset untuk mencapai meal marker
-      } else {
-        glucoseValue = 0;
+        if (offset + 2 < rawData.length) {
+          debugPrint(
+              'Byte at offset $offset: ${dataView.getUint8(offset)} (0x${dataView.getUint8(offset).toRadixString(16)})');
+          debugPrint(
+              'Byte at offset ${offset + 1}: ${dataView.getUint8(offset + 1)} (0x${dataView.getUint8(offset + 1).toRadixString(16)})');
+          debugPrint(
+              'Byte at offset ${offset + 2}: ${dataView.getUint8(offset + 2)} (0x${dataView.getUint8(offset + 2).toRadixString(16)})');
+
+          final baseValueSfloat =
+              dataView.getUint16(offset, Endian.little); // 401
+          final typeAndLocationByte =
+              dataView.getUint8(offset + 2); // 121, 131, 132
+
+          debugPrint('Base value (SFLOAT 16-bit LE): $baseValueSfloat');
+          debugPrint('Type and Location byte: $typeAndLocationByte');
+
+          // --- LOG UNTUK MENGIDENTIFIKASI ICON STATUS ---
+          // Kita asumsikan byte indikator berada di rawData[13]
+          final statusIndicatorByteOffset =
+              offset + 3; // Mengarah ke rawData[13]
+          int statusIndicatorByte = 0;
+
+          if (statusIndicatorByteOffset < rawData.length) {
+            statusIndicatorByte = dataView.getUint8(statusIndicatorByteOffset);
+            debugPrint(
+                '**STATUS INDICATOR BYTE (rawData[13]): ${statusIndicatorByte} (0x${statusIndicatorByte.toRadixString(16).toUpperCase()})**');
+            debugPrint(
+                '**STATUS INDICATOR BINARY: ${statusIndicatorByte.toRadixString(2).padLeft(8, '0')}**');
+
+            final bit0 = statusIndicatorByte & 0x01; // Ambil bit 0
+            final bit1 = (statusIndicatorByte >> 1) & 0x01; // Ambil bit 1
+            final bit2 = (statusIndicatorByte >> 2) & 0x01; // Ambil bit 2
+            debugPrint('Bit 0: $bit0');
+            debugPrint('Bit 1: $bit1');
+            debugPrint('Bit 2: $bit2');
+
+            // --- LOGIKA PERBAIKAN FINAL UNTUK PENENTUAN STATUS ICON DAN NILAI GLUKOSA ---
+            if (statusIndicatorByte == 0xB1) {
+              // 177 desimal -> Indikator "Panah Atas (High)"
+              glucoseValue = baseValueSfloat + typeAndLocationByte - 145;
+              deviceStatusIndicator = 'Panah Atas (High)';
+              debugPrint(
+                  'Mengambil Nilai Tinggi (HI) berdasarkan indikator: $glucoseValue');
+            } else if (statusIndicatorByte == 0xB0) {
+              // 176 desimal -> Indikator "Ceklist (Normal)"
+              glucoseValue = typeAndLocationByte;
+              deviceStatusIndicator = 'Ceklist (Normal)';
+              debugPrint(
+                  'Mengambil Nilai Normal berdasarkan indikator: $glucoseValue');
+            } else {
+              // Ini adalah tempat untuk menambahkan kondisi "LOW" setelah Anda mendapatkan lognya
+              // Saat ini, asumsikan ini sebagai LOW atau kondisi lain yang tidak dikenal.
+              // Jika Anda mendapatkan log LOW dan statusIndicatorByte-nya berbeda,
+              // tambahkan 'else if (statusIndicatorByte == YOUR_LOW_VALUE)' di sini.
+              glucoseValue =
+                  typeAndLocationByte; // Ambil nilai normal secara default
+              deviceStatusIndicator =
+                  'Panah Bawah (Low) atau Tidak Dikenal'; // Default atau jika belum teridentifikasi
+              debugPrint(
+                  'Indikator LOW/Tidak Dikenal, mengambil nilai normal secara default: $glucoseValue');
+            }
+            // --- AKHIR LOGIKA PERBAIKAN FINAL ---
+          } else {
+            glucoseValue = 0; // Handle jika statusIndicatorByte tidak ada
+            deviceStatusIndicator = 'No Indicator Byte';
+          }
+
+          offset += 3; // Maju 2 byte SFLOAT + 1 byte Type & Location
+          offset +=
+              1; // Maju 1 byte untuk statusIndicatorByte / Meal Marker Raw Byte
+        } else {
+          glucoseValue = 0;
+          deviceStatusIndicator = 'Data length too short for glucose';
+        }
       }
 
-      debugPrint('Glucose Value: $glucoseValue');
+      debugPrint('Final Glucose Value: $glucoseValue mg/dL');
 
-      // Parse meal context
+      // Tentukan status glukosa berdasarkan final glucoseValue (ini adalah status rentang)
+      if (glucoseValue < 70) {
+        glucoseStatus = 'Low';
+      } else if (glucoseValue >= 70 && glucoseValue <= 140) {
+        glucoseStatus = 'Normal';
+      } else if (glucoseValue > 140 && glucoseValue <= 200) {
+        glucoseStatus = 'Elevated';
+      } else {
+        glucoseStatus = 'High';
+      }
+      debugPrint('Glucose Status (by range): $glucoseStatus');
+      debugPrint('Device Status Indicator (by icon): $deviceStatusIndicator');
+
+      // Parse meal context (ini terpisah dari logika penentuan nilai HIGH/NORMAL)
       String mealContext = 'no-meal';
       if (offset < rawData.length) {
-        final mealMarker = dataView.getUint8(offset);
+        // Karena kita sudah membaca byte ini di statusIndicatorByte,
+        // kita bisa menggunakannya kembali tanpa membaca ulang dari dataView.
+        // Asumsi rawData[13] adalah byte yang kita pakai untuk meal context.
+        final mealMarkerRawForContext =
+            dataView.getUint8(13); // Langsung ambil dari rawData[13]
         debugPrint(
-            'Meal Marker Raw Byte: ${mealMarker.toRadixString(2).padLeft(8, '0')}');
-        final mealBits = (mealMarker >> 6) & 0x03;
+            'Meal Marker Raw Byte for Context (from rawData[13]): 0x${mealMarkerRawForContext.toRadixString(16).toUpperCase()}');
+        debugPrint(
+            'Meal Marker Binary for Context: ${mealMarkerRawForContext.toRadixString(2).padLeft(8, '0')}');
+
+        final mealBits = (mealMarkerRawForContext >> 6) & 0x03;
         switch (mealBits) {
           case 0x02:
             mealContext = 'pre-meal';
@@ -415,26 +486,20 @@ class BluetoothUtils {
           default:
             mealContext = 'no-meal';
         }
-
         debugPrint('Meal Context: $mealContext');
       }
 
-      // Buat timestamp UTC dari data alat
       DateTime timestamp =
           DateTime.utc(baseYear, month + 1, day, hours, minutes, seconds);
       debugPrint('Original device timestamp (UTC): ${timestamp.toString()}');
 
-      // Koreksi waktu: kurangi 17 menit dari waktu alat
-      // Karena ada selisih 7 menit lebih banyak, jadi total koreksi: 10 + 7 = 17 menit
       timestamp = timestamp.subtract(const Duration(minutes: 17));
       debugPrint(
           'Timestamp after -17 minute correction: ${timestamp.toString()}');
 
-      // Ubah ke zona waktu Jakarta (UTC+7)
       final indonesiaTime = timestamp.toUtc().add(const Duration(hours: 7));
       debugPrint('Local timestamp (Jakarta): ${indonesiaTime.toString()}');
 
-      // Format timestamp untuk Indonesia dengan format 24 jam
       final formattedTimestamp =
           DateFormat('dd/MM/yyyy HH:mm:ss', 'id_ID').format(indonesiaTime);
       debugPrint('Formatted Timestamp (Jakarta): $formattedTimestamp');
@@ -446,36 +511,9 @@ class BluetoothUtils {
         unit: 'mg/dL',
         formattedTimestamp: formattedTimestamp,
         mealContext: mealContext,
+        glucoseStatus: glucoseStatus,
+        deviceStatusIndicator: deviceStatusIndicator, // Sertakan di sini
       );
-
-      // // Buat timestamp UTC dari data alat
-      // DateTime timestamp =
-      //     DateTime.utc(baseYear, month + 1, day, hours, minutes, seconds);
-      // debugPrint('Original device timestamp (UTC): ${timestamp.toString()}');
-
-      // // Koreksi waktu: kurangi 7 menit dari waktu alat
-      // // Ini akan menghasilkan waktu yang sesuai dengan yang ditampilkan di alat
-      // timestamp = timestamp.subtract(const Duration(minutes: 7));
-      // debugPrint(
-      //     'Timestamp after -7 minute correction: ${timestamp.toString()}');
-
-      // // Ubah ke zona waktu Jakarta (UTC+7)
-      // final indonesiaTime = timestamp.toUtc().add(const Duration(hours: 7));
-      // debugPrint('Local timestamp (Jakarta): ${indonesiaTime.toString()}');
-
-      // // Format timestamp untuk Indonesia dengan format 24 jam
-      // final formattedTimestamp =
-      //     DateFormat('dd/MM/yyyy HH:mm:ss', 'id_ID').format(indonesiaTime);
-      // debugPrint('Formatted Timestamp (Jakarta): $formattedTimestamp');
-
-      // return GlucoseReading(
-      //   sequenceNumber: sequenceNumber,
-      //   timestamp: indonesiaTime,
-      //   glucoseValue: glucoseValue,
-      //   unit: 'mg/dL',
-      //   formattedTimestamp: formattedTimestamp,
-      //   mealContext: mealContext,
-      // );
     } catch (e, stackTrace) {
       debugPrint('Error parsing glucose data: $e');
       debugPrint('Stack trace: $stackTrace');
@@ -624,208 +662,7 @@ class _DeviceSelectionDialogState extends State<DeviceSelectionDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
-    // Buat dialog lebih responsif dengan lebar maksimum
-    // final dialogWidth =
-    //     min(size.width * 0.85, 600.0); // Lebar maksimum untuk tablet
-
     final dialogWidth = size.width;
-
-    // return Dialog(
-    //   shape: RoundedRectangleBorder(
-    //     borderRadius: BorderRadius.circular(16),
-    //   ),
-    //   elevation: 8,
-    //   backgroundColor: theme.colorScheme.surface,
-    //   child: SingleChildScrollView(
-    //     // Gunakan SingleChildScrollView untuk menghindari overflow
-    //     child: Padding(
-    //       padding: const EdgeInsets.all(20),
-    //       child: Column(
-    //         mainAxisSize: MainAxisSize.min,
-    //         crossAxisAlignment: CrossAxisAlignment.start,
-    //         children: [
-    //           // Judul yang responsif
-    //           Row(
-    //             crossAxisAlignment: CrossAxisAlignment.center,
-    //             children: [
-    //               Icon(
-    //                 Icons.bluetooth_searching,
-    //                 color: theme.colorScheme.primary,
-    //                 size: 24,
-    //               ),
-    //               const SizedBox(width: 8),
-    //               Flexible(
-    //                 child: Text(
-    //                   "Select Bluetooth Device",
-    //                   style: theme.textTheme.titleLarge?.copyWith(
-    //                     fontWeight: FontWeight.bold,
-    //                     color: theme.colorScheme.onSurface,
-    //                     fontSize: 18,
-    //                   ),
-    //                   overflow: TextOverflow.ellipsis,
-    //                 ),
-    //               ),
-    //             ],
-    //           ),
-    //           const SizedBox(height: 16),
-    //           // Area konten dengan tinggi dan lebar responsif
-    //           ConstrainedBox(
-    //             constraints: BoxConstraints(
-    //               maxWidth: dialogWidth, // Sesuaikan lebar konten dengan dialog
-    //             ),
-    //             child: Container(
-    //               height: min(
-    //                   size.height * 0.4, 320.0), // Tinggi maksimum disesuaikan
-    //               decoration: BoxDecoration(
-    //                 color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
-    //                 borderRadius: BorderRadius.circular(12),
-    //               ),
-    //               child: isScanning
-    //                   ? Center(
-    //                       child: Column(
-    //                         mainAxisSize: MainAxisSize.min,
-    //                         children: [
-    //                           CircularProgressIndicator(
-    //                             color: theme.colorScheme.primary,
-    //                           ),
-    //                           const SizedBox(height: 12),
-    //                           Text(
-    //                             "Scanning for devices...",
-    //                             style: theme.textTheme.bodyMedium?.copyWith(
-    //                               color: theme.colorScheme.onSurfaceVariant,
-    //                             ),
-    //                           ),
-    //                         ],
-    //                       ),
-    //                     )
-    //                   : scanResults.isEmpty
-    //                       ? Center(
-    //                           child: Column(
-    //                             mainAxisSize: MainAxisSize.min,
-    //                             children: [
-    //                               Icon(
-    //                                 Icons.bluetooth_disabled,
-    //                                 size: 36,
-    //                                 color: theme.colorScheme.onSurfaceVariant
-    //                                     .withOpacity(0.7),
-    //                               ),
-    //                               const SizedBox(height: 12),
-    //                               Text(
-    //                                 "No devices found",
-    //                                 style: theme.textTheme.bodyMedium?.copyWith(
-    //                                   color: theme.colorScheme.onSurfaceVariant,
-    //                                 ),
-    //                               ),
-    //                             ],
-    //                           ),
-    //                         )
-    //                       : ListView.separated(
-    //                           padding: const EdgeInsets.symmetric(vertical: 8),
-    //                           itemCount: scanResults.length,
-    //                           separatorBuilder: (_, __) => Divider(
-    //                             height: 1,
-    //                             indent: 8,
-    //                             endIndent: 8,
-    //                             color:
-    //                                 theme.colorScheme.outline.withOpacity(0.3),
-    //                           ),
-    //                           itemBuilder: (context, index) {
-    //                             final device = scanResults[index].device;
-    //                             final bool isContourDevice = device.name
-    //                                 .toLowerCase()
-    //                                 .contains('contour');
-
-    //                             return ListTile(
-    //                               dense: true,
-    //                               visualDensity: VisualDensity.compact,
-    //                               contentPadding: const EdgeInsets.symmetric(
-    //                                   horizontal: 12, vertical: 4),
-    //                               leading: Container(
-    //                                 padding: const EdgeInsets.all(6),
-    //                                 decoration: BoxDecoration(
-    //                                   color: isContourDevice
-    //                                       ? Colors
-    //                                           .green // Ubah warna background menjadi hijau untuk Contour
-    //                                       : theme.colorScheme.surfaceVariant,
-    //                                   shape: BoxShape.circle,
-    //                                 ),
-    //                                 child: Icon(
-    //                                   Icons.bluetooth,
-    //                                   size: 16,
-    //                                   color: isContourDevice
-    //                                       ? Colors
-    //                                           .white // Ikon putih untuk background hijau
-    //                                       : theme.colorScheme.onSurfaceVariant,
-    //                                 ),
-    //                               ),
-    //                               title: Text(
-    //                                 device.name.isEmpty
-    //                                     ? "Unnamed Device"
-    //                                     : device.name,
-    //                                 style: theme.textTheme.bodyMedium?.copyWith(
-    //                                   fontWeight: FontWeight.bold,
-    //                                   color: theme.colorScheme.onSurface,
-    //                                 ),
-    //                                 overflow: TextOverflow.ellipsis,
-    //                               ),
-    //                               subtitle: Text(
-    //                                 device.id.toString(),
-    //                                 style: theme.textTheme.bodySmall?.copyWith(
-    //                                   color: theme.colorScheme.onSurfaceVariant,
-    //                                 ),
-    //                                 overflow: TextOverflow.ellipsis,
-    //                               ),
-    //                               trailing: isContourDevice
-    //                                   ? Icon(
-    //                                       Icons.check_circle,
-    //                                       color: Colors
-    //                                           .green, // Warna ikon checklist menjadi hijau
-    //                                       size: 16,
-    //                                     )
-    //                                   : null,
-    //                               onTap: () {
-    //                                 Navigator.of(context).pop();
-    //                                 widget.onDeviceSelected(
-    //                                     device, isContourDevice);
-    //                               },
-    //                             );
-    //                           },
-    //                         ),
-    //             ),
-    //           ),
-    //           const SizedBox(height: 20),
-    //           // Tombol dengan layout yang responsif
-    //           Row(
-    //             mainAxisAlignment:
-    //                 MainAxisAlignment.center, // Posisikan tombol di tengah
-    //             children: [
-    //               OutlinedButton.icon(
-    //                 onPressed: () => Navigator.of(context).pop(),
-    //                 icon: Icon(Icons.close,
-    //                     size: 16, color: theme.colorScheme.error),
-    //                 label: Text('Cancel'),
-    //                 style: OutlinedButton.styleFrom(
-    //                   side: BorderSide(color: theme.colorScheme.error),
-    //                   foregroundColor: theme.colorScheme.error,
-    //                 ),
-    //               ),
-    //               const SizedBox(width: 8),
-    //               ElevatedButton.icon(
-    //                 onPressed: isScanning ? null : _refreshScan,
-    //                 style: ElevatedButton.styleFrom(
-    //                   backgroundColor: Colors.red,
-    //                   foregroundColor: Colors.white,
-    //                 ),
-    //                 icon: Icon(Icons.refresh, size: 16, color: Colors.white),
-    //                 label: Text('Rescan'),
-    //               ),
-    //             ],
-    //           ),
-    //         ],
-    //       ),
-    //     ),
-    //   ),
-    // );
 
     return Dialog(
       shape: RoundedRectangleBorder(
@@ -1017,63 +854,4 @@ class _DeviceSelectionDialogState extends State<DeviceSelectionDialog> {
       ),
     );
   }
-
-  // Widget build(BuildContext context) {
-  //   return AlertDialog(
-  //     title: const Text("Select Bluetooth Device"),
-  //     content: SizedBox(
-  //       height: 200,
-  //       width: 300,
-  //       child: isScanning
-  //           ? const Center(
-  //               child: Column(
-  //                 mainAxisSize: MainAxisSize.min,
-  //                 children: [
-  //                   CircularProgressIndicator(),
-  //                   SizedBox(height: 16),
-  //                   Text("Scanning for devices..."),
-  //                 ],
-  //               ),
-  //             )
-  //           : scanResults.isEmpty
-  //               ? const Center(
-  //                   child: Text("No devices found"),
-  //                 )
-  //               : ListView.builder(
-  //                   itemCount: scanResults.length,
-  //                   itemBuilder: (context, index) {
-  //                     final device = scanResults[index].device;
-  //                     final bool isContourDevice =
-  //                         device.name.toLowerCase().contains('contour');
-
-  //                     return ListTile(
-  //                       title: Text(
-  //                         device.name,
-  //                         style: const TextStyle(fontWeight: FontWeight.bold),
-  //                       ),
-  //                       subtitle: Text(device.id.toString()),
-  //                       trailing: isContourDevice
-  //                           ? const Icon(Icons.check_circle,
-  //                               color: Colors.green)
-  //                           : null,
-  //                       onTap: () {
-  //                         Navigator.of(context).pop();
-  //                         widget.onDeviceSelected(device, isContourDevice);
-  //                       },
-  //                     );
-  //                   },
-  //                 ),
-  //     ),
-  //     actions: [
-  //       TextButton(
-  //         onPressed: () => Navigator.of(context).pop(),
-  //         child: const Text('Cancel'),
-  //       ),
-  //       TextButton(
-  //         onPressed: isScanning ? null : _refreshScan,
-  //         child: const Text('Scan Again'),
-  //       ),
-  //     ],
-  //   );
-  // }
 }

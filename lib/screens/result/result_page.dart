@@ -13,6 +13,7 @@ class Patient {
   final int id;
   final String name;
   final String patientCode;
+  final String noRM;
   final String barcode;
   final String dateOfBirth;
   final String address;
@@ -21,6 +22,7 @@ class Patient {
       {required this.id,
       required this.name,
       required this.patientCode,
+      required this.noRM,
       required this.barcode,
       required this.dateOfBirth,
       required this.address});
@@ -30,6 +32,7 @@ class Patient {
       id: json['id'],
       name: json['name'],
       patientCode: json['patient_code'],
+      noRM: json['no_rm'] ?? "Undefined",
       barcode: json['barcode'],
       dateOfBirth: json['date_of_birth'],
       address: json['address'],
