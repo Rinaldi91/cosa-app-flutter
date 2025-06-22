@@ -98,18 +98,6 @@ class __FormContentState extends State<_FormContent> {
     _dio = ApiConfig.getDioClient();
   }
 
-  // Future<void> _loadRememberedEmail() async {
-  //   try {
-  //     final prefs = await SharedPreferences.getInstance();
-  //     setState(() {
-  //       _emailController.text = prefs.getString('remembered_email') ?? '';
-  //       _rememberMe = prefs.getBool('remember_me') ?? false;
-  //     });
-  //   } catch (e) {
-  //     _showError('Failed to load saved credentials');
-  //   }
-  // }
-
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -211,17 +199,23 @@ class __FormContentState extends State<_FormContent> {
       final prefs = await SharedPreferences.getInstance();
 
       // Ambil token dari header 'set-cookie'
-      final setCookie = headers.map['set-cookie']?.first;
-      if (setCookie == null) {
-        _showError('Token not found in response headers.');
+      final String? token = data['data']?['token'];
+      if (token == null || token.isEmpty) {
+        _showError('Login successful, but no token received from server.');
         return;
       }
 
-      final token = _extractTokenFromSetCookie(setCookie);
-      if (token.isEmpty) {
-        _showError('Failed to extract token from set-cookie.');
-        return;
-      }
+      // final setCookie = headers.map['set-cookie']?.first;
+      // if (setCookie == null) {
+      //   _showError('Token not found in response headers.');
+      //   return;
+      // }
+
+      // final token = _extractTokenFromSetCookie(setCookie);
+      // if (token.isEmpty) {
+      //   _showError('Failed to extract token from set-cookie.');
+      //   return;
+      // }
 
       // Simpan data ke SharedPreferences
       await prefs.setString('token', token);

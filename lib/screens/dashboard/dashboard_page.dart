@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cosaapp/config/api_config.dart';
 import 'package:cosaapp/screens/dashboard/widgets/fast_button.dart';
 import 'package:cosaapp/screens/result/result_page.dart';
@@ -23,11 +25,13 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   String? _selectedPatientId;
+  String? _selectedPatientCode;
   int _selectedIndex = 0;
   String _username = "";
   String _comment = "";
   final TextEditingController _commentController = TextEditingController();
   BluetoothDevice? _connectedDevice;
+  String? _connectedDeviceName;
   final List<ScanResult> _scanResults = [];
   List<GlucoseReading> glucoseReadings = [];
   bool _isContourDevice = false;
@@ -134,6 +138,7 @@ class _DashboardPageState extends State<DashboardPage> {
         "glucos_value": int.parse(parts[0]),
         "unit": "mg/dL",
         "patient_id": _selectedPatientId,
+        "patient_code": _selectedPatientCode,
         "device_name": deviceName,
         "comment":
             _comment.isNotEmpty ? _comment : null, // Tambah field comment
@@ -462,7 +467,7 @@ class _DashboardPageState extends State<DashboardPage> {
     required String deviceId,
     required bool isConnected,
     required String details,
-    String deviceType = 'CounterPlusElite',
+    String deviceType = 'ContourPlusElite',
   }) async {
     try {
       // Ambil token dari SharedPreferences
@@ -551,8 +556,8 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  Future<void> _connectToDevice(
-      BluetoothDevice device, bool isContourDevice) async {
+  Future<void> _connectToDevice(BluetoothDevice device, bool isContourDevice,
+      {String? deviceName}) async {
     try {
       if (_connectedDevice != null) {
         await _connectedDevice!.disconnect();
@@ -561,13 +566,25 @@ class _DashboardPageState extends State<DashboardPage> {
       await _connectionStateSubscription?.cancel();
       await device.connect();
       final prefs = await SharedPreferences.getInstance();
+      final String finalDeviceName = deviceName ?? device.name;
       await prefs.setString('last_connected_device_id', device.id.id);
+      await prefs.setString('last_connected_device_name', device.name);
 
       if (!mounted) return;
 
+      String errorMessage;
+      if (e.toString().toLowerCase().contains('timeout')) {
+        // Jika error disebabkan oleh timeout, kemungkinan besar perangkat tidak aktif
+        errorMessage =
+            "Device not active or out of range. Please turn it on and try again.";
+      } else {
+        // Untuk jenis error lainnya (misal: permission, bluetooth mati, dll)
+        errorMessage = "Connection failed: ${e.toString()}";
+      }
+
       // Log the successful connection
       saveConnectionLog(
-        context: context, // Tambahkan parameter context
+        context: context,
         deviceId: device.id.toString(),
         isConnected: true,
         details: 'Device connected successfully. Device name: ${device.name}',
@@ -579,6 +596,7 @@ class _DashboardPageState extends State<DashboardPage> {
         if (state == BluetoothConnectionState.disconnected && mounted) {
           setState(() {
             _connectedDevice = null;
+            _connectedDeviceName = null;
             _isContourDevice = false;
             _glucoseResult = "No Data";
             _latestReading = null;
@@ -590,7 +608,31 @@ class _DashboardPageState extends State<DashboardPage> {
             deviceId: device.id.toString(),
             isConnected: false,
             details: 'Device disconnected. REMOTE_USER_TERMINATED_CONNECTION',
-            deviceType: isContourDevice ? device.name : 'CounterPlusElite',
+            deviceType: isContourDevice ? device.name : 'ContourPlusElite',
+          );
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              elevation: 6.0,
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.all(10),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              content: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.white),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      errorMessage, // Tampilkan pesan yang sudah disesuaikan
+                      style: const TextStyle(fontSize: 14, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.red.shade800,
+              duration: const Duration(seconds: 4),
+            ),
           );
 
           BluetoothUtils.showDisconnectionSnackBar(context);
@@ -599,6 +641,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
       setState(() {
         _connectedDevice = device;
+        _connectedDeviceName = finalDeviceName;
         _isContourDevice = isContourDevice;
         _selectedPatientId = null;
         _isSaved = false;
@@ -652,6 +695,7 @@ class _DashboardPageState extends State<DashboardPage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final savedDeviceId = prefs.getString('last_connected_device_id');
+      final savedDeviceName = prefs.getString('last_connected_device_name');
 
       if (savedDeviceId == null) {
         debugPrint("No devices saved.");
@@ -887,6 +931,8 @@ class _DashboardPageState extends State<DashboardPage> {
   void _selectPatient(Patient patient) {
     setState(() {
       _selectedPatientId = patient.id.toString(); // Simpan ID pasien
+      _selectedPatientCode =
+          patient.patientCode.toString(); // Simpan patient Code
       _isSaved = false;
       debugPrint(
           "Selected Patient ID: $_selectedPatientId"); // Tampilkan log untuk verifikasi
@@ -1136,7 +1182,8 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Widget _buildDashboardContent() {
     bool isConnected = _connectedDevice != null && _isContourDevice;
-    String deviceName = isConnected ? _connectedDevice!.name : '';
+    String deviceName =
+        isConnected ? _connectedDeviceName ?? 'Connected Device' : '';
     final mediaQuery = MediaQuery.of(context);
     final isLandscape = mediaQuery.orientation == Orientation.landscape;
 
@@ -1159,12 +1206,14 @@ class _DashboardPageState extends State<DashboardPage> {
         elevation: 2,
         actions: [
           IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: () {
-              // Navigasi ke halaman riwayat pengukuran
-              // Navigator.push(context, MaterialPageRoute(builder: (context) => HistoryPage()));
-            },
-            tooltip: 'History',
+            // Menggunakan ikon 'flash_on' untuk fast connection
+            icon: const Icon(Icons.flash_on),
+
+            // Fungsi yang dipanggil saat ikon ditekan
+            onPressed: connectToSavedDevice,
+
+            // Teks bantuan yang muncul saat ikon ditekan lama
+            tooltip: 'Fast Connection',
           ),
         ],
       ),
@@ -1235,7 +1284,10 @@ class _DashboardPageState extends State<DashboardPage> {
                               isConnected: isConnected,
                               onScan: () => BluetoothUtils.scanAndShowDialog(
                                 context,
-                                onDeviceSelected: _connectToDevice,
+                                onDeviceSelected: (device, isContour) {
+                                  _connectToDevice(device, isContour);
+                                },
+                                // onDeviceSelected: _connectToDevice,
                               ),
                             ),
                           // const SizedBox(height: 8),

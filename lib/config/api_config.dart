@@ -81,6 +81,7 @@ class ApiConfig {
   }
 
   static const String loginEndpoint = '/auth/login';
+  static const String validateTokenEndpoint = '/auth/verify-token'; 
   static const String registerEndpoint = '/auth/register';
   static const String dashboardEndpoint = '/dashboard';
   static const String testGlucosaEndpoint = '/api/test-glucosa';

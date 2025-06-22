@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cosaapp/config/api_config.dart';
 import 'package:cosaapp/screens/result/result_page.dart';
 import 'package:dio/dio.dart';
@@ -7,10 +9,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class PatientTestResultPage extends StatefulWidget {
   final Patient patient;
-
   const PatientTestResultPage({super.key, required this.patient});
 
   @override
+  // ignore: library_private_types_in_public_api
   _PatientTestResultPageState createState() => _PatientTestResultPageState();
 }
 
@@ -18,6 +20,7 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
   List<dynamic> _testResults = [];
   bool _isLoading = true;
   Map<String, dynamic>? _pagination;
+  int? _totalCount;
 
   int _currentPage = 1;
   int _limit = 10; // Default tampilan 10 data
@@ -25,10 +28,35 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
   bool _hasNextPage = false;
   bool _hasPreviousPage = false;
 
+  // Tambahan untuk fungsi pencarian
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  Timer? _debounce;
+
   @override
   void initState() {
     super.initState();
     _fetchTestResults();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      setState(() {
+        _searchQuery = _searchController.text;
+        _currentPage = 1; // Reset ke halaman pertama saat mencari
+        _fetchTestResults();
+      });
+    });
   }
 
   Future<void> _fetchTestResults() async {
@@ -58,11 +86,13 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
           .replaceAll('{patientId}', widget.patient.id.toString());
       final String url = ApiConfig.getUrl(endpoint);
 
-      // final response = await dio.get(url);
-
       final response = await dio.get(
         url,
-        queryParameters: {'page': _currentPage, 'limit': _limit},
+        queryParameters: {
+          'page': _currentPage,
+          'limit': _limit,
+          'lab_number': _searchQuery, // Tambahkan parameter pencarian
+        },
       );
 
       if (response.statusCode == 200) {
@@ -70,12 +100,13 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
         if (data != null && data['status'] == 'success') {
           setState(() {
             _testResults = data['data'] as List;
-            //tambahan
-            _pagination = data['pagination'];
-            _currentPage = _pagination?['currentPage'] ?? 1;
-            _totalPages = _pagination?['totalPages'] ?? 1;
-            _hasNextPage = _pagination?['hasNextPage'] ?? false;
-            _hasPreviousPage = _pagination?['hasPreviousPage'] ?? false;
+            // _pagination = data['pagination'];
+            // _currentPage = _pagination?['currentPage'] ?? 1;
+            // _totalPages = _pagination?['totalPages'] ?? 1;
+            // _hasNextPage = _pagination?['hasNextPage'] ?? false;
+            // _hasPreviousPage = _pagination?['hasPreviousPage'] ?? false;
+            final meta = data['meta'];
+            _totalCount = meta?['total_count'] ?? 0;
           });
         }
       }
@@ -108,8 +139,8 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
       appBar: AppBar(
         title: Row(
           children: const [
-            Icon(Icons.list_alt_rounded), // Icon for fan device
-            SizedBox(width: 8), // Spacing between icon and text
+            Icon(Icons.list_alt_rounded),
+            SizedBox(width: 8),
             Text(
               'Glucose Test Results',
               style: TextStyle(
@@ -125,7 +156,7 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
       ),
       body: RefreshIndicator(
         onRefresh: _fetchTestResults,
-        color: const Color.fromARGB(255, 179, 4, 4), // Warna indikator refresh
+        color: const Color.fromARGB(255, 179, 4, 4),
         backgroundColor: Colors.white,
         strokeWidth: 3.0,
         child: Column(
@@ -185,17 +216,65 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                 ),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.all(10),
+            Padding(
+              // <-- Hapus 'const' dari sini
+              padding: const EdgeInsets.all(
+                  10), // Anda masih bisa menggunakan const di dalam jika memungkinkan
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Glucose Test Results',
-                  style: TextStyle(
+                  'Glucose Test Results - Total : ${_totalCount ?? 0}',
+                  style: const TextStyle(
+                    // TextStyle di sini bisa const karena nilainya tetap
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+              ),
+            ),
+            // Inputan search ditambahkan di sini
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  labelText: 'Search Lab Number',
+                  prefixIcon: const Icon(
+                    Icons.search,
+                  ),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(
+                            Icons.clear,
+                            // Mengubah warna ikon suffix
+                            color: Color.fromARGB(255, 179, 4, 4),
+                          ),
+                          onPressed: () {
+                            _searchController.clear();
+                          },
+                        )
+                      : null,
+
+                  // Border saat input tidak dalam fokus (tidak di-klik)
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      width: 1.0,
+                    ),
+                  ),
+
+                  // Border saat input dalam fokus (di-klik)
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: Color.fromARGB(255, 179, 4, 4),
+                      width:
+                          2.0, // Dibuat lebih tebal agar terlihat jelas saat fokus
+                    ),
+                  ),
+                ),
+                // Mengubah warna kursor
+                cursorColor: const Color.fromARGB(255, 179, 4, 4),
               ),
             ),
             Expanded(
@@ -241,28 +320,20 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                           itemCount: _testResults.length,
                           itemBuilder: (context, index) {
                             final result = _testResults[index];
-
-                            // Format tanggal dari string ISO
                             DateTime testDate;
                             try {
                               testDate = DateTime.parse(result['date_time']);
                             } catch (e) {
-                              testDate =
-                                  DateTime.now(); // Default if parsing fails
+                              testDate = DateTime.now();
                               print('Error parsing date: $e');
                             }
-
                             String formattedDate =
                                 DateFormat('dd MMMM yyyy, HH:mm:ss', 'id_ID')
                                     .format(testDate.toLocal());
-
-                            // Ensure safe access to numeric values
                             int bloodSugar = 0;
                             try {
                               var glucosValue = result['glucos_value'];
                               if (glucosValue is int) {
-                                bloodSugar = glucosValue.toInt();
-                              } else if (glucosValue is int) {
                                 bloodSugar = glucosValue;
                               } else if (glucosValue is String) {
                                 bloodSugar = int.tryParse(glucosValue) ?? 0;
@@ -270,10 +341,8 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                             } catch (e) {
                               print('Error parsing glucos_value: $e');
                             }
-
                             Color statusColor;
                             String statusText;
-
                             if (bloodSugar < 70) {
                               statusColor = Colors.blue;
                               statusText = 'Low';
@@ -289,6 +358,7 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                             }
                             String labNumber =
                                 result['lab_number'] ?? 'No Order Lab';
+                            int totalCount = result['total_count'] ?? 0;
                             String unit = result['unit'] ?? 'mg/dL';
                             String deviceName =
                                 result['device_name'] ?? 'Unknown Device';
@@ -298,7 +368,6 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                                 isValidated ? Colors.green : Colors.orange;
                             String validationText =
                                 isValidated ? 'Validated' : 'Not Validated';
-
                             return Container(
                               margin: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 5),
@@ -373,7 +442,7 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                                       children: [
                                         const Text('Blood Sugar:'),
                                         Text(
-                                          '${bloodSugar.toInt().toString()} $unit',
+                                          '${bloodSugar.toString()} $unit',
                                           style: TextStyle(
                                             color: statusColor,
                                             fontWeight: FontWeight.bold,
@@ -447,7 +516,6 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                                                     final theme =
                                                         Theme.of(context);
                                                     try {
-                                                      // Menampilkan dialog konfirmasi dengan desain yang lebih elegan
                                                       bool confirm =
                                                           await showDialog(
                                                                 context:
@@ -462,7 +530,7 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                                                                         RoundedRectangleBorder(
                                                                       borderRadius:
                                                                           BorderRadius.circular(
-                                                                              16.0), // Border radius untuk dialog
+                                                                              16.0),
                                                                     ),
                                                                     title: Row(
                                                                       children: [
@@ -471,7 +539,7 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                                                                                 .check_circle_outline,
                                                                             color:
                                                                                 Colors.green,
-                                                                            size: 30), // Ikon untuk judul
+                                                                            size: 30),
                                                                         const SizedBox(
                                                                             width:
                                                                                 10),
@@ -495,7 +563,7 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                                                                     actions: [
                                                                       Row(
                                                                         mainAxisAlignment:
-                                                                            MainAxisAlignment.spaceBetween, // Memastikan tombol sejajar kiri dan kanan
+                                                                            MainAxisAlignment.spaceBetween,
                                                                         children: [
                                                                           TextButton(
                                                                             onPressed: () =>
@@ -507,14 +575,14 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                                                                             ),
                                                                             child:
                                                                                 Row(
-                                                                              mainAxisSize: MainAxisSize.min, // Agar Row hanya memakan ruang yang diperlukan
+                                                                              mainAxisSize: MainAxisSize.min,
                                                                               children: [
                                                                                 Icon(
-                                                                                  Icons.close, // Ikon "X"
-                                                                                  color: theme.colorScheme.error, // Warna ikon sesuai dengan tema
-                                                                                  size: 18, // Ukuran ikon (opsional, sesuaikan jika diperlukan)
+                                                                                  Icons.close,
+                                                                                  color: theme.colorScheme.error,
+                                                                                  size: 18,
                                                                                 ),
-                                                                                const SizedBox(width: 8), // Jarak antara ikon dan teks
+                                                                                const SizedBox(width: 8),
                                                                                 Text(
                                                                                   "Cancel",
                                                                                   style: TextStyle(color: theme.colorScheme.error),
@@ -530,16 +598,16 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                                                                                 Navigator.of(context).pop(true),
                                                                             icon: Icon(Icons.check,
                                                                                 size: 16,
-                                                                                color: Colors.white), // Ikon putih
+                                                                                color: Colors.white),
                                                                             label:
                                                                                 Text(
                                                                               'Validation',
-                                                                              style: TextStyle(color: Colors.white), // Teks putih
+                                                                              style: TextStyle(color: Colors.white),
                                                                             ),
                                                                             style:
                                                                                 ElevatedButton.styleFrom(
-                                                                              backgroundColor: Colors.green, // Warna latar tombol Validasi
-                                                                              foregroundColor: Colors.white, // Warna teks tombol Validasi
+                                                                              backgroundColor: Colors.green,
+                                                                              foregroundColor: Colors.white,
                                                                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                                                             ),
                                                                           ),
@@ -550,9 +618,7 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                                                                 },
                                                               ) ??
                                                               false;
-
                                                       if (confirm) {
-                                                        // Dapatkan token dari local storage
                                                         final prefs =
                                                             await SharedPreferences
                                                                 .getInstance();
@@ -571,18 +637,15 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                                                           );
                                                           return;
                                                         }
-                                                        // Ambil ID dari hasil tes
                                                         final testId =
                                                             result['id']
                                                                 .toString();
-                                                        // Buat endpoint dengan mengganti parameter
                                                         final endpoint = ApiConfig
                                                             .replacePathParameters(
                                                           ApiConfig
                                                               .updateIsValidation,
                                                           {'id': testId},
                                                         );
-                                                        // Kirim permintaan update
                                                         final response =
                                                             await ApiConfig
                                                                 .updateData(
@@ -596,7 +659,6 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                                                                 200 ||
                                                             response.statusCode ==
                                                                 201) {
-                                                          // Update data lokal
                                                           setState(() {
                                                             _testResults[index][
                                                                 'is_validation'] = 1;
@@ -650,7 +712,6 @@ class _PatientTestResultPageState extends State<PatientTestResultPage> {
                           },
                         ),
             ),
-            // Pagination information
             if (_pagination != null && !_isLoading)
               Padding(
                 padding: const EdgeInsets.all(10),

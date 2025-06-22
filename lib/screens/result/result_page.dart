@@ -9,6 +9,26 @@ import 'package:intl/locale.dart';
 import 'dart:async';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+class GlucoseTestMeta {
+  final int totalCount;
+  final String patientId;
+  final String? labNumber;
+
+  GlucoseTestMeta({
+    required this.totalCount,
+    required this.patientId,
+    this.labNumber,
+  });
+
+  factory GlucoseTestMeta.fromJson(Map<String, dynamic> json) {
+    return GlucoseTestMeta(
+      totalCount: json['total_count'],
+      patientId: json['patient_id'].toString(),
+      labNumber: json['lab_number'],
+    );
+  }
+}
+
 class Patient {
   final int id;
   final String name;
@@ -17,15 +37,18 @@ class Patient {
   final String barcode;
   final String dateOfBirth;
   final String address;
+  final int? totalCount;
 
-  Patient(
-      {required this.id,
-      required this.name,
-      required this.patientCode,
-      required this.noRM,
-      required this.barcode,
-      required this.dateOfBirth,
-      required this.address});
+  Patient({
+    required this.id,
+    required this.name,
+    required this.patientCode,
+    required this.noRM,
+    required this.barcode,
+    required this.dateOfBirth,
+    required this.address,
+    this.totalCount,
+  });
 
   factory Patient.fromJson(Map<String, dynamic> json) {
     return Patient(
@@ -36,6 +59,7 @@ class Patient {
       barcode: json['barcode'],
       dateOfBirth: json['date_of_birth'],
       address: json['address'],
+      totalCount: json['total_count'],
     );
   }
 
